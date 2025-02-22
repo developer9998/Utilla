@@ -15,7 +15,6 @@ namespace Utilla
     public class UtillaGamemodeSelector : MonoBehaviour
     {
         // Layout
-
         public GameModeSelectorButtonLayout Layout => GetComponent<GameModeSelectorButtonLayout>();
         private GTZone Zone => Layout.zone;
 
@@ -28,26 +27,34 @@ namespace Utilla
         private int PageCount => GamemodeManager.HasInstance ? Mathf.CeilToInt(GamemodeManager.Instance.Gamemodes.Count() / (float)Constants.PageSize) : Constants.PageSize;
         private static int currentPage;
 
-        public void Awake()
+        public void Start()
         {
-            modesForZone = GameMode.GameModeZoneMapping.GetModesForZone(Zone, NetworkSystem.Instance.SessionIsPrivate);
-            modeSelectButtons = GetComponentsInChildren<ModeSelectButton>(true).Take(Constants.PageSize).ToArray();
+            Plugin.foundit = true;
+        }
 
-            foreach (var mb in modeSelectButtons)
+        void FixedUpdate()
+        {
+            if (modeSelectButtons.Count() >= 0)
             {
-                TMP_Text gamemodeTitle = mb.gameModeTitle;
-                gamemodeTitle.enableAutoSizing = true;
-                gamemodeTitle.fontSizeMax = gamemodeTitle.fontSize;
-                gamemodeTitle.fontSizeMin = 0f;
-                gamemodeTitle.transform.localPosition = new Vector3(gamemodeTitle.transform.localPosition.x, 0f, gamemodeTitle.transform.localPosition.z + 0.08f);
-            }
+                modeSelectButtons = GetComponentsInChildren<ModeSelectButton>(true).Take(Constants.PageSize).ToArray();
+                CreatePageButtons(modeSelectButtons.First().gameObject);
+                modesForZone = GameMode.GameModeZoneMapping.GetModesForZone(Zone, NetworkSystem.Instance.SessionIsPrivate);
 
-            CreatePageButtons(modeSelectButtons.First().gameObject);
+                foreach (var mb in modeSelectButtons)
+                {
+                    TMP_Text gamemodeTitle = mb.gameModeTitle;
+                    gamemodeTitle.enableAutoSizing = true;
+                    gamemodeTitle.fontSizeMax = gamemodeTitle.fontSize;
+                    gamemodeTitle.fontSizeMin = 0f;
+                    gamemodeTitle.transform.localPosition = new Vector3(gamemodeTitle.transform.localPosition.x, 0f, gamemodeTitle.transform.localPosition.z + 0.08f);
+                }
 
-            if (GamemodeManager.HasInstance && GamemodeManager.Instance.Gamemodes != null)
-            {
-                Logging.Log($"Current page of the GamemodeSelector is set to {currentPage}.");
-                ShowPage(currentPage);
+
+                if (GamemodeManager.HasInstance && GamemodeManager.Instance.Gamemodes != null)
+                {
+                    Logging.Log($"Current page of the GamemodeSelector is set to {currentPage}.");
+                    ShowPage(currentPage);
+                }
             }
         }
 

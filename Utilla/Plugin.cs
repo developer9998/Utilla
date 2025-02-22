@@ -1,5 +1,7 @@
 ﻿using BepInEx;
 using System;
+using System.Collections.Generic;
+using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using Utilla.HarmonyPatches;
 using Utilla.Tools;
@@ -11,7 +13,7 @@ namespace Utilla
     public class Plugin : BaseUnityPlugin
     {
         private UtillaNetworkController _networkController;
-
+        public static bool foundit;
         public void Start()
         {
             Logging.Logger = Logger;
@@ -24,6 +26,22 @@ namespace Utilla
             Events.GameInitialized += PostInitialized;
 
             UtillaPatches.ApplyHarmonyPatches();
+
+            foreach (var wawa in Resources.FindObjectsOfTypeAll<GameModeSelectorButtonLayout>())
+            {
+                wawa.GetOrAddComponent<UtillaGamemodeSelector>(out UtillaGamemodeSelector weewee);
+            }
+        }
+
+        void Update()
+        {
+            if (!foundit)
+            {
+                foreach (var wawa in Resources.FindObjectsOfTypeAll<GameModeSelectorButtonLayout>())
+                {
+                    wawa.GetOrAddComponent<UtillaGamemodeSelector>(out UtillaGamemodeSelector weewee);
+                }
+            }
         }
 
         public void PostInitialized(object sender, EventArgs e)
