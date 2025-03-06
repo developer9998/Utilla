@@ -31,9 +31,26 @@ namespace Utilla.Models
         /// <summary>
         /// Paintbrawl gamemode, requires at least two participating players.
         /// </summary>
-        Paintbrawl
-    }
+        Paintbrawl,
+        /// <summary>
+        /// Ghost Tag gamemode, requires at least four participating players for infection and under for tag.
+        /// </summary>
+        Ghost,
+        /// <summary>
+        /// Ambush gamemode, requires at least four participating players for infection and under for tag.
+        /// </summary>
+        Ambush,
+        /// <summary>
+        /// Freeze Tag gamemode, requires at least four participating players for infection and under for tag.
+        /// </summary>
+        FreezeTag,
+        /// <summary>
+        /// Guardian gamemode, requires at least one participating player.
+        /// </summary>
+        Guardian
 
+        // i dont think they've added anymore gamemodes besides these
+    }
     public class Gamemode
     {
         /// <summary>
