@@ -84,8 +84,8 @@ namespace Utilla.Behaviours
             var highlightedIndex = Gamemodes.FindIndex(gm => gm.ID == currentGameMode);
             Logging.Info($"highlightedIndex: {highlightedIndex}");
 
-            game_mode_selector.PageCount = Mathf.FloorToInt((float)game_mode_selector.GetSelectorGameModes().Count / Constants.PageSize);
-            UtillaGamemodeSelector.PageNumber = (highlightedIndex >= 0) ? Mathf.FloorToInt((float)highlightedIndex / Constants.PageSize) : 0;
+            game_mode_selector.PageCount = Mathf.FloorToInt((float)game_mode_selector.GetSelectorGameModes().Count / game_mode_selector.GetBaseGameModes().Count);
+            UtillaGamemodeSelector.PageNumber = (highlightedIndex >= 0) ? Mathf.FloorToInt((float)highlightedIndex / game_mode_selector.GetBaseGameModes().Count) : 0;
             game_mode_selector.ShowPage();
         }
 

@@ -39,7 +39,7 @@ namespace Utilla.Behaviours
 
             while (Layout.currentButtons.Count == 0) await Task.Delay(100);
 
-            modeSelectButtons = [.. Layout.currentButtons.Take(Constants.PageSize)];
+            modeSelectButtons = [.. Layout.currentButtons.Take(GetBaseGameModes().Count)];
             
             foreach (var mb in modeSelectButtons)
             {
@@ -66,7 +66,7 @@ namespace Utilla.Behaviours
             }
             if (check_mode) CheckGameMode();
 
-            PageCount = Mathf.FloorToInt((float)GetSelectorGameModes().Count / Constants.PageSize);
+            PageCount = Mathf.FloorToInt((float)GetSelectorGameModes().Count / GetBaseGameModes().Count);
             ShowPage();
         }
 
@@ -183,6 +183,7 @@ namespace Utilla.Behaviours
             {
                 fallbackTemplateButton = templateButton;
             }
+            Invoke("ShowPage",1);
         }
 
         public void NextPage()
@@ -204,7 +205,7 @@ namespace Utilla.Behaviours
         public void ShowPage()
         {
             var game_modes = GetSelectorGameModes();
-            var currentGamemodes = game_modes.Skip(PageNumber * Constants.PageSize).Take(Constants.PageSize).ToList();
+            var currentGamemodes = game_modes.Skip(PageNumber * GetBaseGameModes().Count).Take(GetBaseGameModes().Count).ToList();
 
             for (int i = 0; i < modeSelectButtons.Length; i++)
             {
