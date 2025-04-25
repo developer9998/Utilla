@@ -65,7 +65,6 @@ namespace Utilla.Behaviours
                 .Select(zone => GameMode.GameModeZoneMapping.GetModesForZone(zone, NetworkSystem.Instance.SessionIsPrivate))
                 .ForEach(all_game_modes.UnionWith);
             ModdedGamemodesPerMode = all_game_modes
-                .Where(game_mode => game_mode != GameModeType.Custom)
                 .ToDictionary(game_mode => game_mode, game_mode => new Gamemode($"MODDED_{game_mode}", $"MODDED {GameMode.GameModeZoneMapping.GetModeName(game_mode)}", game_mode));
             DefaultModdedGamemodes = [.. ModdedGamemodesPerMode.Values];
 
