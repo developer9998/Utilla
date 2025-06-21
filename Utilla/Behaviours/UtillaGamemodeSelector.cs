@@ -66,7 +66,7 @@ namespace Utilla.Behaviours
             }
             if (check_mode) CheckGameMode();
 
-            PageCount = Mathf.FloorToInt((float)GetSelectorGameModes().Count / GetBaseGameModes().Count);
+            PageCount = Mathf.CeilToInt((float)GetSelectorGameModes().Count / GetBaseGameModes().Count);
             ShowPage();
         }
 

@@ -65,7 +65,6 @@ namespace Utilla.Behaviours
                 .Select(zone => GameMode.GameModeZoneMapping.GetModesForZone(zone, NetworkSystem.Instance.SessionIsPrivate))
                 .ForEach(all_game_modes.UnionWith);
             ModdedGamemodesPerMode = all_game_modes
-                .Where(game_mode => game_mode != GameModeType.Custom)
                 .ToDictionary(game_mode => game_mode, game_mode => new Gamemode($"MODDED_{game_mode}", $"MODDED {GameMode.GameModeZoneMapping.GetModeName(game_mode)}", game_mode));
             DefaultModdedGamemodes = [.. ModdedGamemodesPerMode.Values];
 
@@ -84,8 +83,8 @@ namespace Utilla.Behaviours
             var highlightedIndex = Gamemodes.FindIndex(gm => gm.ID == currentGameMode);
             Logging.Info($"highlightedIndex: {highlightedIndex}");
 
-            game_mode_selector.PageCount = Mathf.FloorToInt((float)game_mode_selector.GetSelectorGameModes().Count / game_mode_selector.GetBaseGameModes().Count);
-            UtillaGamemodeSelector.PageNumber = (highlightedIndex >= 0) ? Mathf.FloorToInt((float)highlightedIndex / game_mode_selector.GetBaseGameModes().Count) : 0;
+            game_mode_selector.PageCount = Mathf.CeilToInt((float)game_mode_selector.GetSelectorGameModes().Count / game_mode_selector.GetBaseGameModes().Count);
+            UtillaGamemodeSelector.PageNumber = (highlightedIndex >= 0) ? Mathf.CeilToInt((float)highlightedIndex / game_mode_selector.GetBaseGameModes().Count) : 0;
             game_mode_selector.ShowPage();
         }
 
