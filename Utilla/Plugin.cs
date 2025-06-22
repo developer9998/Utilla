@@ -1,11 +1,9 @@
 ﻿using BepInEx;
-using System;
-using GorillaExtensions;
 using UnityEngine;
+using Utilla.Behaviours;
 using Utilla.HarmonyPatches;
 using Utilla.Tools;
 using Utilla.Utils;
-using Utilla.Behaviours;
 
 namespace Utilla
 {

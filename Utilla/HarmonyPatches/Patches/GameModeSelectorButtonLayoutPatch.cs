@@ -18,7 +18,7 @@ namespace Utilla.HarmonyPatches.Patches
             else __instance.AddComponent<UtillaGamemodeSelector>();
             return false;
         }
-        
+
         [HarmonyPatch(nameof(GameModeSelectorButtonLayout.SetupButtons)), HarmonyPrefix]
         public static void SetupButtonsPrefix(GameModeSelectorButtonLayout __instance)
         {

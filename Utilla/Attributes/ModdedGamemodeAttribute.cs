@@ -1,5 +1,5 @@
-﻿using System;
-using GorillaGameModes;
+﻿using GorillaGameModes;
+using System;
 using Utilla.Models;
 
 namespace Utilla.Attributes
@@ -21,9 +21,15 @@ namespace Utilla.Attributes
             gamemode = null;
         }
 
+        public ModdedGamemodeAttribute(string id, string displayName, GameModeType gameModeType = GameModeType.Infection)
+        {
+            gamemode = new Gamemode(id, displayName, gameModeType);
+        }
+
         public ModdedGamemodeAttribute(string id, string displayName, BaseGamemode baseGamemode = BaseGamemode.Infection)
         {
-            gamemode = new Gamemode(id, displayName, (baseGamemode != BaseGamemode.None && Enum.TryParse(baseGamemode.ToString(), out GameModeType game_mode_type)) ? game_mode_type : null);
+            GameModeType? gameModeType = (baseGamemode != BaseGamemode.None && Enum.TryParse(baseGamemode.ToString(), out GameModeType game_mode_type)) ? game_mode_type : null;
+            gamemode = new Gamemode(id, displayName, gameModeType);
         }
 
         public ModdedGamemodeAttribute(string id, string displayName, Type gameManager)

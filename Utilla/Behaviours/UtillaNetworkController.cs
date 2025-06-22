@@ -1,5 +1,4 @@
 ﻿using ExitGames.Client.Photon;
-using GorillaTag;
 using Photon.Pun;
 using Photon.Realtime;
 
@@ -12,7 +11,7 @@ namespace Utilla.Behaviours
         public override void Initialize()
         {
             base.Initialize();
-            
+
             NetworkSystem.Instance.OnJoinedRoomEvent += OnJoinedRoom;
             NetworkSystem.Instance.OnReturnedToSinglePlayer += OnLeftRoom;
         }
@@ -75,22 +74,22 @@ namespace Utilla.Behaviours
 
         public void OnMasterClientSwitched(Player newMasterClient)
         {
-            
+
         }
 
         public void OnPlayerEnteredRoom(Player newPlayer)
         {
-            
+
         }
 
         public void OnPlayerLeftRoom(Player otherPlayer)
         {
-            
+
         }
 
         public void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)
         {
-            
+
         }
     }
 }

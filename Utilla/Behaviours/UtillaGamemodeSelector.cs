@@ -15,14 +15,14 @@ using Utilla.Tools;
 namespace Utilla.Behaviours
 {
     [RequireComponent(typeof(GameModeSelectorButtonLayout)), DisallowMultipleComponent]
-    public class UtillaGamemodeSelector : Singleton<UtillaGamemodeSelector>
+    public class UtillaGamemodeSelector : MonoBehaviour
     {
-        public override bool SingleInstance => false;
+        public static Dictionary<GTZone, UtillaGamemodeSelector> SelectorLookup = [];
 
         // Layout
 
-        public GameModeSelectorButtonLayout Layout => GetComponent<GameModeSelectorButtonLayout>();
-        public GTZone Zone => Layout.zone;
+        public GameModeSelectorButtonLayout Layout;
+        public GTZone Zone;
 
         private ModeSelectButton[] modeSelectButtons = [];
         private static GameObject fallbackTemplateButton = null;
@@ -30,17 +30,36 @@ namespace Utilla.Behaviours
         // Pages
 
         public int PageCount;
-        public static int PageNumber;
+        public int PageNumber;
 
-        public override async void Initialize()
+        public List<Gamemode> BaseGameModes;
+
+        public async void Awake()
         {
-            if (Instance == this && Zone != GTZone.forest) Instance = null;
-            Logging.Info($"Added {(Instance == this ? "singleton for" : "instance of")} UtillaGameModeSelector ({Zone})");
+            Layout = GetComponent<GameModeSelectorButtonLayout>();
+            Zone = Layout.zone;
 
-            while (Layout.currentButtons.Count == 0) await Task.Delay(100);
+            if (SelectorLookup.ContainsKey(Zone))
+            {
+                Logging.Warning($"Found duplicate game mode selector for zone {Zone}");
+            }
+            else
+            {
+                SelectorLookup.Add(Zone, this);
+                Logging.Info($"Initializing game mode selector for zone {Zone}");
+            }
 
-            modeSelectButtons = [.. Layout.currentButtons.Take(GetBaseGameModes().Count)];
-            
+            while (Layout.currentButtons.Count == 0)
+            {
+                Logging.Info("Awaiting button creation");
+                await Task.Delay(100);
+            }
+
+            var modesForZone = GameMode.GameModeZoneMapping.GetModesForZone(Zone, NetworkSystem.Instance.SessionIsPrivate);
+            BaseGameModes = [.. modesForZone.Select(mode => new Gamemode(GameMode.GameModeZoneMapping.GetModeName(mode), mode))];
+
+            modeSelectButtons = [.. Layout.currentButtons];// [.. Layout.currentButtons.Take(BaseGameModes.Count)];
+
             foreach (var mb in modeSelectButtons)
             {
                 TMP_Text gamemodeTitle = mb.gameModeTitle;
@@ -52,21 +71,30 @@ namespace Utilla.Behaviours
 
             CreatePageButtons(modeSelectButtons.First().gameObject);
 
-            if (Instance == this && !Singleton<GamemodeManager>.HasInstance)
+            Logging.Info("Checking for game mode manager");
+
+            if (!Singleton<GamemodeManager>.HasInstance)
             {
-                Plugin.PostInitialized();
-                return;
+                if (Zone == PhotonNetworkController.Instance.StartZone)
+                {
+                    Logging.Info("Start zone detected - creating game mode manager");
+                    Plugin.PostInitialized();
+                    return;
+                }
+
+                while(!Singleton<GamemodeManager>.HasInstance || Singleton<GamemodeManager>.Instance.Gamemodes is null)
+                {
+                    await Task.Delay(100);
+                    Logging.Info("Waiting for game mode manager");
+                }
+            }
+            else
+            {
+                Logging.Info("Checking game mode validity");
+                CheckGameMode();
             }
 
-            bool check_mode = true;
-            while (Singleton<GamemodeManager>.Instance.Gamemodes is null || Singleton<GamemodeManager>.Instance.ModdedGamemodesPerMode is null) 
-            {
-                check_mode = false;
-                await Task.Delay(100);
-            }
-            if (check_mode) CheckGameMode();
-
-            PageCount = Mathf.CeilToInt((float)GetSelectorGameModes().Count / GetBaseGameModes().Count);
+            PageCount = Mathf.CeilToInt((float)GetSelectorGameModes().Count / BaseGameModes.Count);
             ShowPage();
         }
 
@@ -82,25 +110,17 @@ namespace Utilla.Behaviours
             NetworkSystem.Instance.OnReturnedToSinglePlayer -= ShowPage;
         }
 
-        public List<Gamemode> GetBaseGameModes()
-        {
-            List<Gamemode> game_modes = [];
-            var modesForZone = GameMode.GameModeZoneMapping.GetModesForZone(Zone, NetworkSystem.Instance.SessionIsPrivate);
-            foreach (GameModeType game_mode_type in modesForZone)
-            {
-                game_modes.Add(new Gamemode(game_mode_type.ToString(), GameMode.GameModeZoneMapping.GetModeName(game_mode_type), game_mode_type));
-            }
-            return game_modes;
-        }
-
         public List<Gamemode> GetSelectorGameModes()
         {
-            var game_modes = GetBaseGameModes();
-            game_modes = game_modes
-                .Concat(game_modes.Select(game_mode => game_mode.BaseGamemode.HasValue && Singleton<GamemodeManager>.Instance.ModdedGamemodesPerMode.ContainsKey(game_mode.BaseGamemode.Value) ? Singleton<GamemodeManager>.Instance.ModdedGamemodesPerMode[game_mode.BaseGamemode.Value] : new Gamemode("", "", game_mode_type: null)))
-                .Concat(GamemodeManager.Instance.CustomGameModes)
+            //List<Gamemode> gameModeList = [.. BaseGameModes];
+            //gameModeList.AddRange(gameModeList.Select(gameMode => gameMode.BaseGamemode is GameModeType gameModeType && Singleton<GamemodeManager>.Instance.ModdedGamemodesPerMode.TryGetValue(gameModeType, out Gamemode moddedGameMode) ? moddedGameMode : null));
+            //gameModeList.AddRange(GamemodeManager.Instance.CustomGameModes);
+            //out of memory :3
+
+            return BaseGameModes
+                .Union(BaseGameModes.Select(gameMode => gameMode.BaseGamemode is GameModeType gameModeType && Singleton<GamemodeManager>.Instance.ModdedGamemodesPerMode.TryGetValue(gameModeType, out Gamemode moddedGameMode) ? moddedGameMode : null)
+                .Concat(Singleton<GamemodeManager>.Instance.CustomGameModes))
                 .ToList();
-            return game_modes;
         }
 
         public void CheckGameMode()
@@ -139,7 +159,7 @@ namespace Utilla.Behaviours
                 button.transform.localScale = Vector3.one * 0.1427168f; // shouldn't hurt anyone for now 
 
                 TMP_Text tmpText = button.transform.Find("Title")?.GetComponent<TMP_Text>() ?? button.GetComponentInChildren<TMP_Text>(true);
-                if (tmpText) 
+                if (tmpText)
                 {
                     tmpText.gameObject.SetActive(true);
                     tmpText.enabled = true;
@@ -183,7 +203,7 @@ namespace Utilla.Behaviours
             {
                 fallbackTemplateButton = templateButton;
             }
-            Invoke("ShowPage",1);
+            Invoke("ShowPage", 1);
         }
 
         public void NextPage()
@@ -197,27 +217,38 @@ namespace Utilla.Behaviours
         public void PreviousPage()
         {
             PageNumber = (PageNumber <= 0) ? PageCount - 1 : PageNumber - 1;
-            
+
             ShowPage();
             GorillaComputer.instance.SetGameModeWithoutButton(GorillaComputer.instance.currentGameMode.Value);
         }
 
-        public void ShowPage()
+        public void ShowPage() => ShowPage(false);
+
+        public void ShowPage(bool forceCheck)
         {
             var game_modes = GetSelectorGameModes();
-            var currentGamemodes = game_modes.Skip(PageNumber * GetBaseGameModes().Count).Take(GetBaseGameModes().Count).ToList();
+            var currentGamemodes = game_modes.Skip(PageNumber * BaseGameModes.Count).Take(BaseGameModes.Count).ToList();
 
             for (int i = 0; i < modeSelectButtons.Length; i++)
             {
-                Gamemode customMode = (i < currentGamemodes.Count) ? currentGamemodes[i] : null;
-                if (customMode != null && !string.IsNullOrEmpty(customMode.ID))
+                ModeSelectButton button = modeSelectButtons[i];
+                Gamemode customMode = currentGamemodes.ElementAtOrDefault(i);
+
+                if (customMode is null || string.IsNullOrEmpty(customMode.ID))
                 {
-                    modeSelectButtons[i].enabled = true;
-                    modeSelectButtons[i].SetInfo(customMode.ID, customMode.DisplayName, false, null);
+                    if (button.gameObject.activeSelf) button.gameObject.SetActive(false);
+
+                    button.enabled = false;
+                    button.SetInfo("", "", false, null);
                     continue;
                 }
-                modeSelectButtons[i].enabled = false;
-                modeSelectButtons[i].SetInfo("", "", false, null);
+
+                if (!button.gameObject.activeSelf) button.gameObject.SetActive(true);
+
+                button.enabled = true;
+                button.SetInfo(customMode.ID, customMode.DisplayName, false, null);
+
+                if (forceCheck) button.OnGameModeChanged(GorillaComputer.instance.currentGameMode.Value);
             }
         }
     }

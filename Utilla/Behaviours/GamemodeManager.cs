@@ -43,7 +43,7 @@ namespace Utilla.Behaviours
         public override void Initialize()
         {
             base.Initialize();
-            
+
             Events.RoomJoined += OnRoomJoin;
             Events.RoomLeft += OnRoomLeft;
         }
@@ -64,28 +64,29 @@ namespace Utilla.Behaviours
                 .Select(zone_name => (GTZone)Enum.Parse(typeof(GTZone), zone_name))
                 .Select(zone => GameMode.GameModeZoneMapping.GetModesForZone(zone, NetworkSystem.Instance.SessionIsPrivate))
                 .ForEach(all_game_modes.UnionWith);
-            ModdedGamemodesPerMode = all_game_modes
-                .ToDictionary(game_mode => game_mode, game_mode => new Gamemode($"MODDED_{game_mode}", $"MODDED {GameMode.GameModeZoneMapping.GetModeName(game_mode)}", game_mode));
+            ModdedGamemodesPerMode = all_game_modes.ToDictionary(game_mode => game_mode, game_mode => new Gamemode(Constants.GamemodePrefix, $"MODDED {GameMode.GameModeZoneMapping.GetModeName(game_mode)}", game_mode));
+            Logging.Info($"Modded Game Modes: {string.Join(", ", ModdedGamemodesPerMode.Select(item => item.Value).Select(mode => mode.DisplayName).Select(displayName => string.Format("\"{0}\"", displayName)))}");
             DefaultModdedGamemodes = [.. ModdedGamemodesPerMode.Values];
 
-            var game_mode_selector = Singleton<UtillaGamemodeSelector>.Instance;
-            Gamemodes = game_mode_selector.GetBaseGameModes();
+            var game_mode_selector = UtillaGamemodeSelector.SelectorLookup[PhotonNetworkController.Instance.StartZone];
+            Gamemodes = [.. game_mode_selector.BaseGameModes];
+
             pluginInfos = GetPluginInfos();
             CustomGameModes = GetGamemodes(pluginInfos);
+            Logging.Info($"Custom Game Modes: {string.Join(", ", CustomGameModes.Select(mode => mode.DisplayName).Select(displayName => string.Format("\"{0}\"", displayName)))}");
             Gamemodes.AddRange(DefaultModdedGamemodes.Concat(CustomGameModes));
             Gamemodes.ForEach(AddGamemodeToPrefabPool);
+            Logging.Info($"Game Modes: {string.Join(", ", Gamemodes.Select(mode => mode.DisplayName).Select(displayName => string.Format("\"{0}\"", displayName)))}");
 
-            // re-determine game mode
             game_mode_selector.CheckGameMode();
             currentGameMode = GorillaComputer.instance.currentGameMode.Value;
-            Logging.Info($"currentGameMode: {currentGameMode}");
 
-            var highlightedIndex = Gamemodes.FindIndex(gm => gm.ID == currentGameMode);
-            Logging.Info($"highlightedIndex: {highlightedIndex}");
-
-            game_mode_selector.PageCount = Mathf.CeilToInt((float)game_mode_selector.GetSelectorGameModes().Count / game_mode_selector.GetBaseGameModes().Count);
-            UtillaGamemodeSelector.PageNumber = (highlightedIndex >= 0) ? Mathf.CeilToInt((float)highlightedIndex / game_mode_selector.GetBaseGameModes().Count) : 0;
-            game_mode_selector.ShowPage();
+            int basePageCount = game_mode_selector.BaseGameModes.Count;
+            var avaliableModes = game_mode_selector.GetSelectorGameModes();
+            int selectedMode = avaliableModes.FindIndex(gm => gm.ID == currentGameMode);
+            game_mode_selector.PageCount = Mathf.CeilToInt(avaliableModes.Count / (float)basePageCount);
+            game_mode_selector.PageNumber = (selectedMode != -1 && selectedMode < avaliableModes.Count) ? Mathf.CeilToInt(selectedMode / (float)basePageCount) : 0;
+            game_mode_selector.ShowPage(true);
         }
 
         public List<Gamemode> GetGamemodes(List<PluginInfo> infos)
@@ -209,12 +210,13 @@ namespace Utilla.Behaviours
                 }
 
                 GameMode.gameModeKeyByName[gamemode.ID] = (int)gmKey;
+
                 //GameMode.gameModeKeyByName[gamemode.DisplayName] = (int)gmKey;
                 gtGameModeNames.Add(gamemode.ID);
                 return;
             }
 
-            GameObject prefab = new GameObject(gamemode.ID);
+            GameObject prefab = new(gamemode.ID);
             prefab.SetActive(false);
             var gameMode = prefab.AddComponent(gamemode.GameManager) as GorillaGameManager;
             int gameModeKey = (int)gameMode.GameType();
@@ -222,7 +224,7 @@ namespace Utilla.Behaviours
             if (GameMode.gameModeTable.ContainsKey(gameModeKey))
             {
                 Logging.Error($"Game Mode with name '{GameMode.gameModeTable[gameModeKey].GameModeName()}' is already using GameType '{gameModeKey}'.");
-                GameObject.Destroy(prefab);
+                Destroy(prefab);
                 return;
             }
 
@@ -235,6 +237,14 @@ namespace Utilla.Behaviours
             prefab.transform.SetParent(moddedGameModesObject.transform);
             prefab.SetActive(true);
 
+            if (gameMode.fastJumpLimit == 0 || gameMode.fastJumpMultiplier == 0)
+            {
+                Logging.Warning($"FAST JUMP SPEED AREN'T ASSIGNED FOR {gamemode.GameManager.Name}!!! ASSIGN THESE ASAP");
+
+                var speed = gameMode.LocalPlayerSpeed();
+                gameMode.fastJumpLimit = speed[0];
+                gameMode.fastJumpMultiplier = speed[1];
+            }
         }
 
         internal void OnRoomJoin(object sender, Events.RoomJoinedArgs args)

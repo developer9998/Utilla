@@ -9,24 +9,18 @@ namespace Utilla.Behaviours
 
         public static bool HasInstance => Instance;
 
-        public virtual bool SingleInstance { get; } = true;
-
         private T GenericComponent => gameObject.GetComponent<T>();
 
         public void Awake()
         {
-            if (SingleInstance)
+            if (HasInstance && Instance != GenericComponent)
             {
-                if (HasInstance && Instance != GenericComponent)
-                {
-                    Destroy(GenericComponent);
-                }
-                Instance = GenericComponent;
+                Logging.Warning($"Singleton for {typeof(T).Name} already has an instance when another component exists");
+                Destroy(GenericComponent);
+                return;
             }
-            else if (!HasInstance)
-            {
-                Instance = GenericComponent;
-            }
+
+            Instance = GenericComponent;
 
             Initialize();
         }

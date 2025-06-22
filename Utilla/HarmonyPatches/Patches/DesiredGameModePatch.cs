@@ -1,7 +1,7 @@
-﻿using System;
-using GorillaGameModes;
+﻿using GorillaGameModes;
 using GorillaNetworking;
 using HarmonyLib;
+using System;
 using Utilla.Tools;
 
 namespace Utilla.HarmonyPatches.Patches
