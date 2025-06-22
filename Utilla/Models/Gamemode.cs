@@ -1,5 +1,6 @@
 ﻿using GorillaGameModes;
 using System;
+using Utilla.Utils;
 
 namespace Utilla.Models
 {
@@ -55,25 +56,24 @@ namespace Utilla.Models
         /// </summary>
         public Type GameManager { get; }
 
-        public Gamemode(string displayName, GameModeType gameModeType)
+        internal Gamemode(GameModeType gameModeType)
         {
-            ID = gameModeType.ToString();
-            DisplayName = displayName;
             BaseGamemode = gameModeType;
+
+            ID = gameModeType.ToString();
+            DisplayName = GameModeUtils.GetGameModeName(gameModeType);
         }
 
         public Gamemode(string id, string displayName, GameModeType? game_mode_type = null)
         {
-            ID = game_mode_type.HasValue ? string.Concat(id, game_mode_type) : id;
-            DisplayName = displayName;
             BaseGamemode = game_mode_type;
+
+            ID = game_mode_type.HasValue && !id.EndsWith(game_mode_type.Value.ToString()) ? string.Concat(id, game_mode_type) : id;
+            DisplayName = displayName;
         }
 
         public Gamemode(string id, string displayName, Type gameManager)
         {
-            if (!typeof(GorillaGameManager).IsAssignableFrom(gameManager))
-                throw new ArgumentException("Game manager must be inherited from GorillaGameManager");
-
             ID = id;
             DisplayName = displayName;
             GameManager = gameManager;

@@ -10,6 +10,7 @@ using UnityEngine;
 using Utilla.Attributes;
 using Utilla.Models;
 using Utilla.Tools;
+using Utilla.Utils;
 
 namespace Utilla.Behaviours
 {
@@ -55,16 +56,13 @@ namespace Utilla.Behaviours
             moddedGameModesObject = new GameObject("Modded Game Modes");
             moddedGameModesObject.transform.SetParent(GameMode.instance.gameObject.transform);
 
-            var currentGameMode = PlayerPrefs.GetString("currentGameMode", GameModeType.Infection.ToString());
+            string currentGameMode = PlayerPrefs.GetString("currentGameMode", GameModeType.Infection.ToString());
             GorillaComputer.instance.currentGameMode.Value = currentGameMode;
 
-            var zone_names = Enum.GetNames(typeof(GTZone));
+            IEnumerable<GTZone> zones = Enum.GetValues(typeof(GTZone)).Cast<GTZone>();
             HashSet<GameModeType> all_game_modes = [];
-            zone_names
-                .Select(zone_name => (GTZone)Enum.Parse(typeof(GTZone), zone_name))
-                .Select(zone => GameMode.GameModeZoneMapping.GetModesForZone(zone, NetworkSystem.Instance.SessionIsPrivate))
-                .ForEach(all_game_modes.UnionWith);
-            ModdedGamemodesPerMode = all_game_modes.ToDictionary(game_mode => game_mode, game_mode => new Gamemode(Constants.GamemodePrefix, $"MODDED {GameMode.GameModeZoneMapping.GetModeName(game_mode)}", game_mode));
+            zones.Select(zone => GameMode.GameModeZoneMapping.GetModesForZone(zone, NetworkSystem.Instance.SessionIsPrivate)).ForEach(all_game_modes.UnionWith);
+            ModdedGamemodesPerMode = all_game_modes.ToDictionary(game_mode => game_mode, game_mode => new Gamemode(Constants.GamemodePrefix, $"MODDED {GameModeUtils.GetGameModeName(game_mode)}", game_mode));
             Logging.Info($"Modded Game Modes: {string.Join(", ", ModdedGamemodesPerMode.Select(item => item.Value).Select(mode => mode.DisplayName).Select(displayName => string.Format("\"{0}\"", displayName)))}");
             DefaultModdedGamemodes = [.. ModdedGamemodesPerMode.Values];
 
@@ -85,7 +83,7 @@ namespace Utilla.Behaviours
             var avaliableModes = game_mode_selector.GetSelectorGameModes();
             int selectedMode = avaliableModes.FindIndex(gm => gm.ID == currentGameMode);
             game_mode_selector.PageCount = Mathf.CeilToInt(avaliableModes.Count / (float)basePageCount);
-            game_mode_selector.PageNumber = (selectedMode != -1 && selectedMode < avaliableModes.Count) ? Mathf.CeilToInt(selectedMode / (float)basePageCount) : 0;
+            game_mode_selector.CurrentPage = (selectedMode != -1 && selectedMode < avaliableModes.Count) ? Mathf.FloorToInt(selectedMode / (float)basePageCount) : 0;
             game_mode_selector.ShowPage(true);
         }
 
