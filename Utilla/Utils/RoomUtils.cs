@@ -14,9 +14,9 @@ namespace Utilla.Utils
     {
         public static string RoomCode;
 
-        internal static string defaultQueue;
+        //internal static string defaultQueue;
 
-        static GorillaNetworkJoinTrigger joinTrigger;
+        //static GorillaNetworkJoinTrigger joinTrigger;
 
         internal static string RandomString(int length)
         {

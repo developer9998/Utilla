@@ -9,19 +9,26 @@ namespace Utilla.HarmonyPatches.Patches
     [HarmonyPatch(typeof(GorillaNetworkJoinTrigger), nameof(GorillaNetworkJoinTrigger.GetDesiredGameType))]
     internal class DesiredGameModePatch
     {
-        public static bool Prefix(ref string __result)
+        public static bool Prefix(GorillaNetworkJoinTrigger __instance, ref string __result)
         {
-            var gameMode = GorillaComputer.instance.currentGameMode.Value;
-
-            if (!Enum.IsDefined(typeof(GameModeType), gameMode))
+            if (__instance.GetType() == typeof(GorillaNetworkRankedJoinTrigger))
             {
-                Logging.Info($"Join trigger returning non-defined desired game mode {gameMode}");
-
-                __result = gameMode;
+                Logging.Info($"Joinng Ranked, Forcing to Ranked gameMode");
+                __result = "InfectionCompetitive";
                 return false;
             }
+            else
+            {
+                var gameMode = GorillaComputer.instance.currentGameMode.Value;
+                if (!Enum.IsDefined(typeof(GameModeType), gameMode))
+                {
+                    Logging.Info($"Join trigger returning non-defined desired game mode {gameMode}");
 
-            return true;
+                    __result = gameMode;
+                    return false;
+                }
+                return true;
+            }
         }
     }
 }
