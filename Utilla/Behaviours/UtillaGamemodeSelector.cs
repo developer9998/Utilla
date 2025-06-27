@@ -29,7 +29,7 @@ namespace Utilla.Behaviours
 
         // Pages
 
-        public int PageCount;
+        public int PageCount = 1;
         public static int PageNumber;
 
         public override async void Initialize()
@@ -204,6 +204,10 @@ namespace Utilla.Behaviours
 
         public void ShowPage()
         {
+            if (PageCount == 0)
+            {
+                PageCount = 1;
+            }
             var game_modes = GetSelectorGameModes();
             var currentGamemodes = game_modes.Skip(PageNumber * GetBaseGameModes().Count).Take(GetBaseGameModes().Count).ToList();
 
