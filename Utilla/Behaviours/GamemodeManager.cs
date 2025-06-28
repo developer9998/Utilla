@@ -14,7 +14,7 @@ using Utilla.Utils;
 
 namespace Utilla.Behaviours
 {
-    public class GamemodeManager : Singleton<GamemodeManager>
+    internal class GamemodeManager : Singleton<GamemodeManager>
     {
         public Dictionary<GameModeType, Gamemode> ModdedGamemodesPerMode;
         public List<Gamemode> DefaultModdedGamemodes;

@@ -4,7 +4,7 @@ using Photon.Realtime;
 
 namespace Utilla.Behaviours
 {
-    public class UtillaNetworkController : Singleton<UtillaNetworkController>, IInRoomCallbacks
+    internal class UtillaNetworkController : Singleton<UtillaNetworkController>, IInRoomCallbacks
     {
         Events.RoomJoinedArgs lastRoom;
 

@@ -117,7 +117,7 @@ namespace Utilla.Behaviours
 
             gameModeList = [.. BaseGameModes];
 
-            for(int i = 0; i < BaseGameModes.Count; i++)
+            for (int i = 0; i < BaseGameModes.Count; i++)
             {
                 GameModeType? gameModeType = BaseGameModes[i].BaseGamemode;
                 if (gameModeType.HasValue && Singleton<GamemodeManager>.Instance.ModdedGamemodesPerMode.TryGetValue(gameModeType.Value, out Gamemode moddedGameMode))
@@ -127,7 +127,7 @@ namespace Utilla.Behaviours
                     continue;
                 }
 
-                if (gameModeType.HasValue) 
+                if (gameModeType.HasValue)
                     Logging.Warning($"Missing gamemode for {gameModeType}");
 
                 gameModeList.Add(null); // TODO: substitute null item with empty game mode object
