@@ -26,9 +26,10 @@ namespace Utilla.Attributes
             gamemode = new Gamemode(id, displayName, gameModeType);
         }
 
+        [Obsolete]
         public ModdedGamemodeAttribute(string id, string displayName, BaseGamemode baseGamemode = BaseGamemode.Infection)
         {
-            GameModeType? gameModeType = (baseGamemode != BaseGamemode.None && Enum.TryParse(baseGamemode.ToString(), out GameModeType game_mode_type)) ? game_mode_type : null;
+            GameModeType? gameModeType = (baseGamemode != BaseGamemode.None && Enum.TryParse(baseGamemode.ToString(), out GameModeType result)) ? result : null;
             gamemode = new Gamemode(id, displayName, gameModeType);
         }
 

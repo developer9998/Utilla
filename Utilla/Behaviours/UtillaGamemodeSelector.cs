@@ -164,7 +164,8 @@ namespace Utilla.Behaviours
                 GorillaComputer.instance.SetGameModeWithoutButton(replacement_game_mode);
                 return;
             }
-            GorillaComputer.instance.SetGameModeWithoutButton(current_game_mode);
+            ShowPage();
+            //GorillaComputer.instance.SetGameModeWithoutButton(current_game_mode);
         }
 
         void CreatePageButtons(GameObject templateButton)
@@ -236,7 +237,6 @@ namespace Utilla.Behaviours
             CurrentPage = (CurrentPage + 1) % PageCount;
 
             ShowPage();
-            GorillaComputer.instance.SetGameModeWithoutButton(GorillaComputer.instance.currentGameMode.Value);
         }
 
         public void PreviousPage()
@@ -244,7 +244,6 @@ namespace Utilla.Behaviours
             CurrentPage = (CurrentPage <= 0) ? PageCount - 1 : CurrentPage - 1;
 
             ShowPage();
-            GorillaComputer.instance.SetGameModeWithoutButton(GorillaComputer.instance.currentGameMode.Value);
         }
 
         public void ShowPage() => ShowPage(false);
@@ -274,6 +273,7 @@ namespace Utilla.Behaviours
                 button.SetInfo(customMode.ID, customMode.DisplayName, false, null);
 
                 if (forceCheck) button.OnGameModeChanged(GorillaComputer.instance.currentGameMode.Value);
+                else button.OnGameModeChanged(GorillaComputer.instance.currentGameMode.Value);
             }
         }
     }

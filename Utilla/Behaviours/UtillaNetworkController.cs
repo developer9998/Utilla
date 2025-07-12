@@ -1,37 +1,56 @@
 ﻿using ExitGames.Client.Photon;
-using Photon.Pun;
 using Photon.Realtime;
+using Utilla.Models;
+using Utilla.Tools;
+using Utilla.Utils;
 
 namespace Utilla.Behaviours
 {
     internal class UtillaNetworkController : Singleton<UtillaNetworkController>, IInRoomCallbacks
     {
-        Events.RoomJoinedArgs lastRoom;
+        /// <summary>
+        /// The Gamemode instance based on the current room
+        /// </summary>
+        /// <remarks>
+        /// Requires the NetworkSystem instance alongside presence in a room
+        /// </remarks>
+        public Gamemode CurrentGamemode
+        {
+            get
+            {
+                if (currentGamemode is null && NetworkSystem.Instance is NetworkSystem netSys && netSys && netSys.InRoom)
+                    currentGamemode = GameModeUtils.FindGamemodeInString(netSys.GameModeString);
+                return currentGamemode;
+            }
+        }
+
+        private Gamemode currentGamemode;
+
+        private Events.RoomJoinedArgs lastRoom;
 
         public override void Initialize()
         {
             base.Initialize();
 
-            NetworkSystem.Instance.OnJoinedRoomEvent += OnJoinedRoom;
+            NetworkSystem.Instance.OnMultiplayerStarted += OnJoinedRoom;
             NetworkSystem.Instance.OnReturnedToSinglePlayer += OnLeftRoom;
         }
 
         public void OnJoinedRoom()
         {
-            //if (GTAppState.isQuitting) return;
+            if (ApplicationQuittingState.IsQuitting) return;
 
             // trigger events
+
             bool isPrivate = false;
-            string gamemode = "";
-            if (PhotonNetwork.CurrentRoom != null)
+            string gamemode = string.Empty;
+
+            if (NetworkSystem.Instance is NetworkSystem netSys && netSys)
             {
-                var currentRoom = PhotonNetwork.NetworkingClient.CurrentRoom;
-                isPrivate = !currentRoom.IsVisible; // Room Browser rooms
-                if (currentRoom.CustomProperties.TryGetValue("gameMode", out var gamemodeObject))
-                {
-                    gamemode = gamemodeObject as string;
-                }
+                isPrivate = netSys.SessionIsPrivate;
+                gamemode = netSys.GameModeString;
             }
+            else Logging.Warning("what the shit");
 
             Events.RoomJoinedArgs args = new()
             {
@@ -48,20 +67,20 @@ namespace Utilla.Behaviours
 
         public void OnLeftRoom()
         {
-            //if (GTAppState.isQuitting) return;
+            if (ApplicationQuittingState.IsQuitting) return;
 
             if (lastRoom != null)
             {
                 Events.Instance.TriggerRoomLeft(lastRoom);
                 lastRoom = null;
             }
+
+            currentGamemode = null;
         }
 
         public void OnRoomPropertiesUpdate(Hashtable propertiesThatChanged)
         {
-            //if (GTAppState.isQuitting) return;
-
-            if (!propertiesThatChanged.TryGetValue("gameMode", out var gameModeObject) || gameModeObject is not string gameMode) return;
+            if (ApplicationQuittingState.IsQuitting || !propertiesThatChanged.TryGetValue("gameMode", out object gameModeObject) || gameModeObject is not string gameMode) return;
 
             if (lastRoom.Gamemode.Contains(Constants.GamemodePrefix) != gameMode.Contains(Constants.GamemodePrefix))
             {
@@ -69,7 +88,9 @@ namespace Utilla.Behaviours
             }
 
             lastRoom.Gamemode = gameMode;
-            lastRoom.isPrivate = PhotonNetwork.CurrentRoom.IsVisible;
+            lastRoom.isPrivate = NetworkSystem.Instance.SessionIsPrivate;
+
+            currentGamemode = GameModeUtils.FindGamemodeInString(gameMode);
         }
 
         public void OnMasterClientSwitched(Player newMasterClient)

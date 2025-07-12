@@ -23,20 +23,6 @@ namespace Utilla.Behaviours
 
         private List<PluginInfo> pluginInfos;
 
-        /*
-        FieldInfo fiGameModeInstance = typeof(GameMode).GetField("instance", BindingFlags.Static | BindingFlags.NonPublic);
-        GameMode gtGameModeInstance;
-
-        FieldInfo fiGameModeTable = typeof(GameMode).GetField("gameModeTable", BindingFlags.Static | BindingFlags.NonPublic);
-        Dictionary<int, GorillaGameManager> gtGameModeTable;
-
-        FieldInfo fiGameModeKeyByName = typeof(GameMode).GetField("gameModeKeyByName", BindingFlags.Static | BindingFlags.NonPublic);
-        Dictionary<string, int> gtGameModeKeyByName;
-
-        FieldInfo fiGameModes = typeof(GameMode).GetField("gameModes", BindingFlags.Static | BindingFlags.NonPublic);
-        List<GorillaGameManager> gtGameModes;
-        */
-
         List<string> gtGameModeNames;
 
         GameObject moddedGameModesObject;
@@ -137,7 +123,7 @@ namespace Utilla.Behaviours
         Action<string> CreateJoinLeaveAction(BaseUnityPlugin plugin, Type baseType, Type attribute)
         {
             ParameterExpression param = Expression.Parameter(typeof(string));
-            ParameterExpression[] paramExpression = new ParameterExpression[] { param };
+            ParameterExpression[] paramExpression = [param];
             ConstantExpression instance = Expression.Constant(plugin);
             BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
