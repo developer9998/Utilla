@@ -16,6 +16,7 @@ namespace Utilla.HarmonyPatches.Patches
         {
             string currentGameMode = GorillaComputer.instance.currentGameMode.Value;
 
+            /*
             if (GameModeUtils.GetGamemodeFromId(currentGameMode) is Gamemode gamemode && gamemode.BaseGamemode.HasValue && gamemode.BaseGamemode.Value < GameModeType.Count)
             {
                 GameModeType gameModeType = gamemode.BaseGamemode.Value;
@@ -38,6 +39,7 @@ namespace Utilla.HarmonyPatches.Patches
                 GorillaComputer.instance.SetGameModeWithoutButton(fallbackGameMode.ToString());
                 return false;
             }
+            */
 
             if (!Enum.IsDefined(typeof(GameModeType), currentGameMode))
             {
