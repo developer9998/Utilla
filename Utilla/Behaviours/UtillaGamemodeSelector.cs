@@ -110,6 +110,7 @@ namespace Utilla.Behaviours
         public List<Gamemode> GetSelectorGameModes()
         {
             bool sessionIsPrivate = NetworkSystem.Instance.SessionIsPrivate;
+
             if (SelectorGameModes.TryGetValue(sessionIsPrivate, out List<Gamemode> gameModeList))
                 return gameModeList;
 
@@ -229,7 +230,8 @@ namespace Utilla.Behaviours
             {
                 fallbackTemplateButton = templateButton;
             }
-            Invoke("ShowPage", 1);
+
+            Invoke(nameof(ShowPage), 1);
         }
 
         public void NextPage()
@@ -260,12 +262,16 @@ namespace Utilla.Behaviours
 
                 if (customMode is null || string.IsNullOrEmpty(customMode.ID))
                 {
+                    // line doesn't have a game mode
+
                     if (button.gameObject.activeSelf) button.gameObject.SetActive(false);
 
                     button.enabled = false;
                     button.SetInfo("", "", false, null);
                     continue;
                 }
+
+                // line has a game mode
 
                 if (!button.gameObject.activeSelf) button.gameObject.SetActive(true);
 

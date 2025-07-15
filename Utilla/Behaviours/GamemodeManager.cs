@@ -1,4 +1,5 @@
 ﻿using BepInEx;
+using BepInEx.Bootstrap;
 using GorillaGameModes;
 using GorillaNetworking;
 using System;
@@ -16,16 +17,17 @@ namespace Utilla.Behaviours
 {
     internal class GamemodeManager : Singleton<GamemodeManager>
     {
-        public Dictionary<GameModeType, Gamemode> ModdedGamemodesPerMode;
-        public List<Gamemode> DefaultModdedGamemodes;
-        public List<Gamemode> CustomGameModes;
         public List<Gamemode> Gamemodes { get; private set; }
 
+        public Dictionary<GameModeType, Gamemode> ModdedGamemodesPerMode;
+        public List<Gamemode> DefaultModdedGamemodes;
+
+        // Custom game modes
+        public List<Gamemode> CustomGameModes;
+        private GameObject customGameModeContainer;
         private List<PluginInfo> pluginInfos;
 
-        List<string> gtGameModeNames;
-
-        GameObject moddedGameModesObject;
+        private List<string> gtGameModeNames;
 
         public override void Initialize()
         {
@@ -39,21 +41,28 @@ namespace Utilla.Behaviours
         {
             gtGameModeNames = GameMode.gameModeNames;
 
-            moddedGameModesObject = new GameObject("Modded Game Modes");
-            moddedGameModesObject.transform.SetParent(GameMode.instance.gameObject.transform);
+            customGameModeContainer = new GameObject("Utilla Custom GameModes");
+            customGameModeContainer.transform.SetParent(GameMode.instance.gameObject.transform);
 
             string currentGameMode = PlayerPrefs.GetString("currentGameMode", GameModeType.Infection.ToString());
             GorillaComputer.instance.currentGameMode.Value = currentGameMode;
 
             IEnumerable<GTZone> zones = Enum.GetValues(typeof(GTZone)).Cast<GTZone>();
-            HashSet<GameModeType> all_game_modes = [];
-            zones.Select(zone => GameMode.GameModeZoneMapping.GetModesForZone(zone, NetworkSystem.Instance.SessionIsPrivate)).ForEach(all_game_modes.UnionWith);
-            ModdedGamemodesPerMode = all_game_modes.ToDictionary(game_mode => game_mode, game_mode => new Gamemode(Constants.GamemodePrefix, $"MODDED {GameModeUtils.GetGameModeName(game_mode)}", game_mode));
+            HashSet<GameModeType> usedGameModes = [];
+            zones.Select(zone => GameMode.GameModeZoneMapping.GetModesForZone(zone, NetworkSystem.Instance.SessionIsPrivate)).ForEach(usedGameModes.UnionWith);
+            ModdedGamemodesPerMode = usedGameModes.ToDictionary(game_mode => game_mode, game_mode => new Gamemode(Constants.GamemodePrefix, $"MODDED {GameModeUtils.GetGameModeName(game_mode)}", game_mode));
             Logging.Info($"Modded Game Modes: {string.Join(", ", ModdedGamemodesPerMode.Select(item => item.Value).Select(mode => mode.DisplayName).Select(displayName => string.Format("\"{0}\"", displayName)))}");
             DefaultModdedGamemodes = [.. ModdedGamemodesPerMode.Values];
 
-            var game_mode_selector = UtillaGamemodeSelector.SelectorLookup[PhotonNetworkController.Instance.StartZone];
-            Gamemodes = [.. game_mode_selector.BaseGameModes];
+            GTZone startZone = PhotonNetworkController.Instance.StartZone; // for future reference: use active zone if this reference is taken out completely
+            if (!UtillaGamemodeSelector.SelectorLookup.TryGetValue(startZone, out var originalSelector))
+            {
+                Logging.Fatal($"Game Mode Selector not found for {startZone.GetName()}!!");
+                Logging.Info(string.Join(Environment.NewLine, UtillaGamemodeSelector.SelectorLookup));
+                return;
+            }
+
+            Gamemodes = [.. originalSelector.BaseGameModes];
 
             pluginInfos = GetPluginInfos();
             CustomGameModes = GetGamemodes(pluginInfos);
@@ -62,15 +71,15 @@ namespace Utilla.Behaviours
             Gamemodes.ForEach(AddGamemodeToPrefabPool);
             Logging.Info($"Game Modes: {string.Join(", ", Gamemodes.Select(mode => mode.DisplayName).Select(displayName => string.Format("\"{0}\"", displayName)))}");
 
-            game_mode_selector.CheckGameMode();
+            originalSelector.CheckGameMode();
             currentGameMode = GorillaComputer.instance.currentGameMode.Value;
 
-            int basePageCount = game_mode_selector.BaseGameModes.Count;
-            var avaliableModes = game_mode_selector.GetSelectorGameModes();
+            int basePageCount = originalSelector.BaseGameModes.Count;
+            List<Gamemode> avaliableModes = originalSelector.GetSelectorGameModes();
             int selectedMode = avaliableModes.FindIndex(gm => gm.ID == currentGameMode);
-            game_mode_selector.PageCount = Mathf.CeilToInt(avaliableModes.Count / (float)basePageCount);
-            game_mode_selector.CurrentPage = (selectedMode != -1 && selectedMode < avaliableModes.Count) ? Mathf.FloorToInt(selectedMode / (float)basePageCount) : 0;
-            game_mode_selector.ShowPage(true);
+            originalSelector.PageCount = Mathf.CeilToInt(avaliableModes.Count / (float)basePageCount);
+            originalSelector.CurrentPage = (selectedMode != -1 && selectedMode < avaliableModes.Count) ? Mathf.FloorToInt(selectedMode / (float)basePageCount) : 0;
+            originalSelector.ShowPage(true);
         }
 
         public List<Gamemode> GetGamemodes(List<PluginInfo> infos)
@@ -96,21 +105,22 @@ namespace Utilla.Behaviours
         List<PluginInfo> GetPluginInfos()
         {
             List<PluginInfo> infos = [];
-            foreach (var info in BepInEx.Bootstrap.Chainloader.PluginInfos)
+
+            foreach (var info in Chainloader.PluginInfos)
             {
-                if (info.Value == null) continue;
+                if (info.Value is null) continue;
                 BaseUnityPlugin plugin = info.Value.Instance;
-                if (plugin == null) continue;
+                if (plugin is null) continue;
                 Type type = plugin.GetType();
 
                 IEnumerable<Gamemode> gamemodes = GetGamemodes(type);
 
-                if (gamemodes.Count() > 0)
+                if (gamemodes.Any())
                 {
                     infos.Add(new PluginInfo
                     {
                         Plugin = plugin,
-                        Gamemodes = gamemodes.ToArray(),
+                        Gamemodes = [.. gamemodes],
                         OnGamemodeJoin = CreateJoinLeaveAction(plugin, type, typeof(ModdedGamemodeJoinAttribute)),
                         OnGamemodeLeave = CreateJoinLeaveAction(plugin, type, typeof(ModdedGamemodeLeaveAttribute))
                     });
@@ -155,19 +165,17 @@ namespace Utilla.Behaviours
         {
             IEnumerable<ModdedGamemodeAttribute> attributes = type.GetCustomAttributes<ModdedGamemodeAttribute>();
 
-            HashSet<Gamemode> gamemodes = new HashSet<Gamemode>();
-            if (attributes != null)
+            HashSet<Gamemode> gamemodes = [];
+            if (attributes is not null)
             {
                 foreach (ModdedGamemodeAttribute attribute in attributes)
                 {
-                    if (attribute.gamemode != null)
+                    if (attribute.gamemode is not null)
                     {
                         gamemodes.Add(attribute.gamemode);
+                        continue;
                     }
-                    else
-                    {
-                        gamemodes.UnionWith(DefaultModdedGamemodes);
-                    }
+                    gamemodes.UnionWith(DefaultModdedGamemodes);
                 }
             }
 
@@ -177,32 +185,35 @@ namespace Utilla.Behaviours
         void AddGamemodeToPrefabPool(Gamemode gamemode)
         {
             if (gamemode.GameManager is null) return;
+
             if (GameMode.gameModeKeyByName.ContainsKey(gamemode.ID))
             {
-                Logging.Warning($"Game Mode with name '{gamemode.ID}' already exists.");
+                Logging.Warning($"Game Mode already exists: has ID {gamemode.ID}");
                 return;
             }
 
             Type gmType = gamemode.GameManager;
-            if (gmType == null || !gmType.IsSubclassOf(typeof(GorillaGameManager)))
+
+            if (gmType is null || !gmType.IsSubclassOf(typeof(GorillaGameManager)))
             {
                 GameModeType? gmKey = gamemode.BaseGamemode;
 
                 if (gmKey == null)
                 {
+                    Logging.Warning($"Game Mode not made cuz lack of info: has ID {gamemode.ID}");
                     return;
                 }
 
                 GameMode.gameModeKeyByName[gamemode.ID] = (int)gmKey;
-
                 //GameMode.gameModeKeyByName[gamemode.DisplayName] = (int)gmKey;
                 gtGameModeNames.Add(gamemode.ID);
                 return;
             }
 
-            GameObject prefab = new(gamemode.ID);
+            GameObject prefab = new($"{gamemode.ID}: {gmType.Name}");
             prefab.SetActive(false);
-            var gameMode = prefab.AddComponent(gamemode.GameManager) as GorillaGameManager;
+
+            GorillaGameManager gameMode = prefab.AddComponent(gmType) as GorillaGameManager;
             int gameModeKey = (int)gameMode.GameType();
 
             if (GameMode.gameModeTable.ContainsKey(gameModeKey))
@@ -218,14 +229,14 @@ namespace Utilla.Behaviours
             gtGameModeNames.Add(gamemode.ID);
             GameMode.gameModes.Add(gameMode);
 
-            prefab.transform.SetParent(moddedGameModesObject.transform);
+            prefab.transform.SetParent(customGameModeContainer.transform);
             prefab.SetActive(true);
 
             if (gameMode.fastJumpLimit == 0 || gameMode.fastJumpMultiplier == 0)
             {
-                Logging.Warning($"FAST JUMP SPEED AREN'T ASSIGNED FOR {gamemode.GameManager.Name}!!! ASSIGN THESE ASAP");
+                Logging.Warning($"FAST JUMP SPEED AREN'T ASSIGNED FOR {gmType.Name}!!! ASSIGN THESE ASAP");
 
-                var speed = gameMode.LocalPlayerSpeed();
+                float[] speed = gameMode.LocalPlayerSpeed();
                 gameMode.fastJumpLimit = speed[0];
                 gameMode.fastJumpMultiplier = speed[1];
             }
@@ -235,33 +246,36 @@ namespace Utilla.Behaviours
         {
             string gamemode = args.Gamemode;
 
-            Logging.Info($"Game Mode is set as {gamemode}");
+            Logging.Info($"Joined room: with game mode {gamemode}");
 
             foreach (var pluginInfo in pluginInfos)
             {
-                Logging.Info($"{pluginInfo.Plugin.GetType().Name}: {string.Join(", ", pluginInfo.Gamemodes.Select(gm => gm.ID))}");
+                Logging.Info($"Plugin {pluginInfo.Plugin.Info.Metadata.Name}: {string.Join(", ", pluginInfo.Gamemodes.Select(gm => gm.ID))}");
+
                 if (pluginInfo.Gamemodes.Any(x => gamemode.Contains(x.ID)))
                 {
                     try
                     {
-                        pluginInfo.OnGamemodeJoin?.Invoke(gamemode);
-                        Logging.Info("yes");
+                        pluginInfo.OnGamemodeJoin?.Invoke(gamemode);//
+                        Logging.Message("Plugin is suitable for game mode");
                     }
-                    catch (Exception e)
+                    catch (Exception ex)
                     {
-                        Debug.LogError(e);
+                        Logging.Fatal($"Join action could not be called");
+                        Logging.Error(ex);
                     }
+                    continue;
                 }
-                else
-                {
-                    Logging.Info("no");
-                }
+
+                Logging.Message("Plugin is unsupported for game mode");
             }
         }
 
         internal void OnRoomLeft(object sender, Events.RoomJoinedArgs args)
         {
             string gamemode = args.Gamemode;
+
+            Logging.Info($"Left room: with game mode {gamemode}");
 
             foreach (var pluginInfo in pluginInfos)
             {
@@ -270,10 +284,12 @@ namespace Utilla.Behaviours
                     try
                     {
                         pluginInfo.OnGamemodeLeave?.Invoke(gamemode);
+                        //Logging.Info($"Plugin {pluginInfo.Plugin.Info.Metadata.Name} is suitable for game mode");
                     }
-                    catch (Exception e)
+                    catch (Exception ex)
                     {
-                        Debug.LogError(e);
+                        Logging.Fatal($"Leave action could not be called");
+                        Logging.Error(ex);
                     }
                 }
             }

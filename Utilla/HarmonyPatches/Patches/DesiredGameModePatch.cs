@@ -2,7 +2,6 @@
 using GorillaNetworking;
 using HarmonyLib;
 using System;
-using System.Linq;
 using Utilla.Models;
 using Utilla.Tools;
 using Utilla.Utils;
@@ -12,42 +11,47 @@ namespace Utilla.HarmonyPatches.Patches
     [HarmonyPatch(typeof(GorillaNetworkJoinTrigger), nameof(GorillaNetworkJoinTrigger.GetDesiredGameType))]
     internal class DesiredGameModePatch
     {
-        public static bool Prefix(GorillaNetworkJoinTrigger __instance, ref string __result)
+        public static bool Prefix(GorillaNetworkJoinTrigger __instance, ref string __result, ref GTZone ___zone)
         {
-            string currentGameMode = GorillaComputer.instance.currentGameMode.Value;
+            Type joinTriggerType = __instance.GetType();
 
-            /*
-            if (GameModeUtils.GetGamemodeFromId(currentGameMode) is Gamemode gamemode && gamemode.BaseGamemode.HasValue && gamemode.BaseGamemode.Value < GameModeType.Count)
+            Logging.Info($"{joinTriggerType.Name}.{nameof(GorillaNetworkJoinTrigger.GetDesiredGameType)}");
+
+            // TODO: check whether this hardcoded check is necessary
+            if (joinTriggerType == typeof(GorillaNetworkRankedJoinTrigger))
             {
-                GameModeType gameModeType = gamemode.BaseGamemode.Value;
-                Logging.Info($"{currentGameMode} has type {gameModeType}");
-
-                GTZone zone = __instance.zone;
-                bool isPrivate = NetworkSystem.Instance.SessionIsPrivate;
-
-                GameModeType verifiedGameMode = GameMode.GameModeZoneMapping.VerifyModeForZone(zone, gameModeType, isPrivate);
-                if (gameModeType == verifiedGameMode)
-                {
-                    Logging.Info($"Mode supported for {__instance.zone}");
-                    __result = currentGameMode;
-                    return false;
-                }
-
-                Logging.Info($"Mode unsupported for {__instance.zone}");
-                GameModeType fallbackGameMode = GameMode.GameModeZoneMapping.GetModesForZone(zone, isPrivate).First();
-                Logging.Log($"Fallback game mode: {fallbackGameMode}");
-                GorillaComputer.instance.SetGameModeWithoutButton(fallbackGameMode.ToString());
+                Logging.Message($"Ranked JoinTrigger resorting to hardcoded infection mode");
+                __result = GameModeType.InfectionCompetitive.ToString();
                 return false;
             }
-            */
+
+            string currentGameMode = GorillaComputer.instance.currentGameMode.Value;
 
             if (!Enum.IsDefined(typeof(GameModeType), currentGameMode))
             {
+                if (GameModeUtils.GetGamemodeFromId(currentGameMode) is Gamemode gamemode && gamemode.BaseGamemode.HasValue && gamemode.BaseGamemode.Value < GameModeType.Count)
+                {
+                    GameModeType gameModeType = gamemode.BaseGamemode.Value;
+
+                    GameModeType verifiedGameMode = GameMode.GameModeZoneMapping.VerifyModeForZone(__instance.zone, gameModeType, NetworkSystem.Instance.SessionIsPrivate);
+                    if (verifiedGameMode == gameModeType)
+                    {
+                        Logging.Message($"JoinTrigger of {___zone.GetName()} allowing generic game mode: {currentGameMode} under {gameModeType}");
+                        __result = currentGameMode;
+                        return false;
+                    }
+
+                    Logging.Message($"JoinTrigger of {___zone.GetName()} changing unsupported game mode: {currentGameMode} under {gameModeType}");
+                    __result = verifiedGameMode.ToString();
+                    return false;
+                }
+
+                Logging.Message($"JoinTrigger of {___zone.GetName()} allowing custom game mode: {currentGameMode}");
                 __result = currentGameMode;
-                Logging.Info($"Join trigger returning non-defined desired game mode {currentGameMode}");
                 return false;
             }
 
+            Logging.Message($"JoinTrigger of {___zone.GetName()} naturally allows game mode: {currentGameMode}");
             return true;
         }
     }
