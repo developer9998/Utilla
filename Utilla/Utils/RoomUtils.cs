@@ -1,15 +1,17 @@
 ﻿using GorillaNetworking;
+using System;
 using System.Linq;
 
 namespace Utilla.Utils
 {
+    [Obsolete]
     public static class RoomUtils
     {
         public static string RoomCode;
 
-        internal static string defaultQueue;
+        // internal static string defaultQueue;
 
-        static GorillaNetworkJoinTrigger joinTrigger;
+        // static GorillaNetworkJoinTrigger joinTrigger;
 
         internal static string RandomString(int length)
         {

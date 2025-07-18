@@ -2,7 +2,7 @@
 {
     internal class Constants
     {
-        public const string Guid = "org.legoandmars.gorillatag.utilla";
+        public const string GUID = "org.legoandmars.gorillatag.utilla";
 
         public const string Name = "Utilla";
 

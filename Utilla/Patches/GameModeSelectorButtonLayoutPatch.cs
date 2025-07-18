@@ -1,7 +1,7 @@
 using HarmonyLib;
 using Utilla.Behaviours;
 
-namespace Utilla.HarmonyPatches.Patches
+namespace Utilla.Patches
 {
     [HarmonyPatch(typeof(GameModeSelectorButtonLayout))]
     public class GameModeSelectorButtonLayoutPatch

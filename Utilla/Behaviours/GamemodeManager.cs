@@ -15,12 +15,15 @@ using Utilla.Utils;
 
 namespace Utilla.Behaviours
 {
-    internal class GamemodeManager : Singleton<GamemodeManager>
+    internal class GamemodeManager : MonoBehaviour
     {
+        public static GamemodeManager Instance { get; private set; }
+        public static bool HasInstance => Instance != null;
         public List<Gamemode> Gamemodes { get; private set; }
+        public List<Gamemode> ModdedGamemodes { get; private set; }
 
-        public Dictionary<GameModeType, Gamemode> ModdedGamemodesPerMode;
-        public List<Gamemode> DefaultModdedGamemodes;
+        public Dictionary<GameModeType, Gamemode> DefaultGameModesPerMode = [];
+        public Dictionary<GameModeType, Gamemode> ModdedGamemodesPerMode = [];
 
         // Custom game modes
         public List<Gamemode> CustomGameModes;
@@ -29,9 +32,14 @@ namespace Utilla.Behaviours
 
         private List<string> gtGameModeNames;
 
-        public override void Initialize()
+        public void Awake()
         {
-            base.Initialize();
+            if (Instance != null && Instance != this)
+            {
+                Destroy(this);
+                return;
+            }
+            Instance = this;
 
             Events.RoomJoined += OnRoomJoin;
             Events.RoomLeft += OnRoomLeft;
@@ -47,12 +55,18 @@ namespace Utilla.Behaviours
             string currentGameMode = PlayerPrefs.GetString("currentGameMode", GameModeType.Infection.ToString());
             GorillaComputer.instance.currentGameMode.Value = currentGameMode;
 
-            IEnumerable<GTZone> zones = Enum.GetValues(typeof(GTZone)).Cast<GTZone>();
-            HashSet<GameModeType> usedGameModes = [];
-            zones.Select(zone => GameMode.GameModeZoneMapping.GetModesForZone(zone, NetworkSystem.Instance.SessionIsPrivate)).ForEach(usedGameModes.UnionWith);
-            ModdedGamemodesPerMode = usedGameModes.ToDictionary(game_mode => game_mode, game_mode => new Gamemode(Constants.GamemodePrefix, $"MODDED {GameModeUtils.GetGameModeName(game_mode)}", game_mode));
+            GameModeType[] gameModeTypes = [.. Enum.GetValues(typeof(GameModeType)).Cast<GameModeType>()];
+            for(int i = 0; i < gameModeTypes.Length; i++)
+            {
+                if (i == (int)GameModeType.Count) break;
+
+                GameModeType modeType = gameModeTypes[i];
+                if (!DefaultGameModesPerMode.TryAdd(modeType, new Gamemode(modeType))) continue;
+                ModdedGamemodesPerMode.Add(modeType, new Gamemode(Constants.GamemodePrefix, $"Modded {GameModeUtils.GetGameModeName(modeType)}", modeType));
+            }
+
             Logging.Info($"Modded Game Modes: {string.Join(", ", ModdedGamemodesPerMode.Select(item => item.Value).Select(mode => mode.DisplayName).Select(displayName => string.Format("\"{0}\"", displayName)))}");
-            DefaultModdedGamemodes = [.. ModdedGamemodesPerMode.Values];
+            ModdedGamemodes = [.. ModdedGamemodesPerMode.Values];
 
             GTZone startZone = PhotonNetworkController.Instance.StartZone; // for future reference: use active zone if this reference is taken out completely
             if (!UtillaGamemodeSelector.SelectorLookup.TryGetValue(startZone, out var originalSelector))
@@ -62,24 +76,24 @@ namespace Utilla.Behaviours
                 return;
             }
 
-            Gamemodes = [.. originalSelector.BaseGameModes];
+            Gamemodes = [.. DefaultGameModesPerMode.Values];
 
             pluginInfos = GetPluginInfos();
             CustomGameModes = GetGamemodes(pluginInfos);
             Logging.Info($"Custom Game Modes: {string.Join(", ", CustomGameModes.Select(mode => mode.DisplayName).Select(displayName => string.Format("\"{0}\"", displayName)))}");
-            Gamemodes.AddRange(DefaultModdedGamemodes.Concat(CustomGameModes));
+            Gamemodes.AddRange(ModdedGamemodes.Concat(CustomGameModes));
             Gamemodes.ForEach(AddGamemodeToPrefabPool);
             Logging.Info($"Game Modes: {string.Join(", ", Gamemodes.Select(mode => mode.DisplayName).Select(displayName => string.Format("\"{0}\"", displayName)))}");
 
             originalSelector.CheckGameMode();
             currentGameMode = GorillaComputer.instance.currentGameMode.Value;
 
-            int basePageCount = originalSelector.BaseGameModes.Count;
+            int pageCapacity = originalSelector.PageCapacity;
             List<Gamemode> avaliableModes = originalSelector.GetSelectorGameModes();
             int selectedMode = avaliableModes.FindIndex(gm => gm.ID == currentGameMode);
-            originalSelector.PageCount = Mathf.CeilToInt(avaliableModes.Count / (float)basePageCount);
-            originalSelector.CurrentPage = (selectedMode != -1 && selectedMode < avaliableModes.Count) ? Mathf.FloorToInt(selectedMode / (float)basePageCount) : 0;
-            originalSelector.ShowPage(true);
+            originalSelector.PageCount = Mathf.CeilToInt(avaliableModes.Count / (float)pageCapacity);
+            originalSelector.CurrentPage = (selectedMode != -1 && selectedMode < avaliableModes.Count) ? Mathf.FloorToInt(selectedMode / (float)pageCapacity) : 0;
+            originalSelector.ShowPage();
         }
 
         public List<Gamemode> GetGamemodes(List<PluginInfo> infos)
@@ -92,7 +106,7 @@ namespace Utilla.Behaviours
                 additonalGamemodes.UnionWith(info.Gamemodes);
             }
 
-            foreach (var gamemode in DefaultModdedGamemodes)
+            foreach (var gamemode in ModdedGamemodes)
             {
                 additonalGamemodes.Remove(gamemode);
             }
@@ -175,7 +189,7 @@ namespace Utilla.Behaviours
                         gamemodes.Add(attribute.gamemode);
                         continue;
                     }
-                    gamemodes.UnionWith(DefaultModdedGamemodes);
+                    gamemodes.UnionWith(ModdedGamemodes);
                 }
             }
 

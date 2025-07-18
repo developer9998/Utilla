@@ -1,7 +1,7 @@
 using GorillaNetworking;
 using HarmonyLib;
 
-namespace Utilla.HarmonyPatches.Patches
+namespace Utilla.Patches
 {
     [HarmonyPatch(typeof(GorillaComputer), nameof(GorillaComputer.SetGameModeWithoutButton))]
     public static class SetGameModePatch

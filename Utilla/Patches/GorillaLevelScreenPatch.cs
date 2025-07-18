@@ -1,9 +1,9 @@
 using HarmonyLib;
 using UnityEngine;
 
-namespace Utilla.HarmonyPatches.Patches
+namespace Utilla.Patches
 {
-    [HarmonyPatch(typeof(GorillaLevelScreen), "UpdateText")]
+    [HarmonyPatch(typeof(GorillaLevelScreen), nameof(GorillaLevelScreen.UpdateText))]
     internal class GorillaLevelScreenPatch
     {
         public static bool Prefix(GorillaLevelScreen __instance) => __instance.GetComponent<MeshRenderer>();

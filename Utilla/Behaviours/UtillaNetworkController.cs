@@ -1,63 +1,73 @@
 ﻿using ExitGames.Client.Photon;
+using Photon.Pun;
 using Photon.Realtime;
-using Utilla.Models;
-using Utilla.Tools;
+using UnityEngine;
 using Utilla.Utils;
 
 namespace Utilla.Behaviours
 {
-    internal class UtillaNetworkController : Singleton<UtillaNetworkController>, IInRoomCallbacks
+    internal class UtillaNetworkController : MonoBehaviourPunCallbacks
     {
-        /// <summary>
-        /// The Gamemode instance based on the current room
-        /// </summary>
-        /// <remarks>
-        /// Requires the NetworkSystem instance alongside presence in a room
-        /// </remarks>
-        public Gamemode CurrentGamemode
-        {
-            get
-            {
-                if (currentGamemode is null && NetworkSystem.Instance is NetworkSystem netSys && netSys && netSys.InRoom)
-                    currentGamemode = GameModeUtils.FindGamemodeInString(netSys.GameModeString);
-                return currentGamemode;
-            }
-        }
-
-        private Gamemode currentGamemode;
+        public static UtillaNetworkController Instance { get; private set; }
 
         private Events.RoomJoinedArgs lastRoom;
 
-        public override void Initialize()
+        public override void OnEnable()
         {
-            base.Initialize();
+            if (Instance != null && Instance != this)
+            {
+                Destroy(this);
+                return;
+            }
+            Instance = this;
 
-            NetworkSystem.Instance.OnMultiplayerStarted += OnJoinedRoom;
-            NetworkSystem.Instance.OnReturnedToSinglePlayer += OnLeftRoom;
+            base.OnEnable(); // Tell Photon to register this object as a callback target, this will be important shortly
+
+            if (NetworkSystem.Instance is NetworkSystem netSys && netSys is NetworkSystemPUN && PhotonNetwork.NetworkingClient is LoadBalancingClient client)
+            {
+                // The following code inserts our callbacks right before the network system does
+                // This ensures any relative members a part of Utilla are properly defined before anything else gets their values
+
+                client.UpdateCallbackTargets();
+                MatchMakingCallbacksContainer callbackContainer = client.MatchMakingCallbackTargets;
+
+                for(int i = 0; i < callbackContainer.Count; i++)
+                {
+                    IMatchmakingCallbacks individualCallback = callbackContainer[i];
+                    if ((object)individualCallback is MonoBehaviour behaviour && behaviour.gameObject == netSys.gameObject)
+                    {
+                        if (callbackContainer.Contains(this)) callbackContainer.Remove(this);
+                        callbackContainer.Insert(i, this);
+                        break;
+                    }
+                }
+            }
         }
 
-        public void OnJoinedRoom()
+        public override void OnDisable()
+        {
+            base.OnDisable();
+
+            if (Instance == this) Instance = null;
+        }
+
+        public override void OnJoinedRoom()
         {
             if (ApplicationQuittingState.IsQuitting) return;
 
             // trigger events
 
-            bool isPrivate = false;
-            string gamemode = string.Empty;
+            NetworkSystem netSys = NetworkSystem.Instance;
+            bool isPrivate = netSys.SessionIsPrivate;
+            string gameMode = netSys.GameModeString;
 
-            if (NetworkSystem.Instance is NetworkSystem netSys && netSys)
-            {
-                isPrivate = netSys.SessionIsPrivate;
-                gamemode = netSys.GameModeString;
-            }
-            else Logging.Warning("what the shit");
+            GameModeUtils.CurrentGamemode = GameModeUtils.FindGamemodeInString(gameMode);
 
             Events.RoomJoinedArgs args = new()
             {
                 isPrivate = isPrivate,
-                Gamemode = gamemode
+                Gamemode = gameMode
             };
-
             Events.Instance.TriggerRoomJoin(args);
 
             lastRoom = args;
@@ -65,52 +75,34 @@ namespace Utilla.Behaviours
             //RoomUtils.ResetQueue();
         }
 
-        public void OnLeftRoom()
+        public override void OnLeftRoom()
         {
             if (ApplicationQuittingState.IsQuitting) return;
+
+            GameModeUtils.CurrentGamemode = null;
 
             if (lastRoom != null)
             {
                 Events.Instance.TriggerRoomLeft(lastRoom);
                 lastRoom = null;
             }
-
-            currentGamemode = null;
         }
 
-        public void OnRoomPropertiesUpdate(Hashtable propertiesThatChanged)
+        public override void OnRoomPropertiesUpdate(Hashtable propertiesThatChanged)
         {
-            if (ApplicationQuittingState.IsQuitting || !propertiesThatChanged.TryGetValue("gameMode", out object gameModeObject) || gameModeObject is not string gameMode) return;
+            if (ApplicationQuittingState.IsQuitting || !NetworkSystem.Instance.InRoom || NetworkSystem.Instance.GameModeString is not string gameMode || gameMode == null) return;
 
-            if (lastRoom.Gamemode.Contains(Constants.GamemodePrefix) != gameMode.Contains(Constants.GamemodePrefix))
+            GameModeUtils.CurrentGamemode = GameModeUtils.FindGamemodeInString(gameMode);
+
+            if (lastRoom.Gamemode != gameMode || lastRoom.isPrivate != NetworkSystem.Instance.SessionIsPrivate)
             {
-                Singleton<GamemodeManager>.Instance.OnRoomLeft(null, lastRoom);
+                GamemodeManager.Instance.OnRoomLeft(null, lastRoom);
+
+                lastRoom.Gamemode = gameMode;
+                lastRoom.isPrivate = NetworkSystem.Instance.SessionIsPrivate;
+
+                GamemodeManager.Instance.OnRoomJoin(null, lastRoom);
             }
-
-            lastRoom.Gamemode = gameMode;
-            lastRoom.isPrivate = NetworkSystem.Instance.SessionIsPrivate;
-
-            currentGamemode = GameModeUtils.FindGamemodeInString(gameMode);
-        }
-
-        public void OnMasterClientSwitched(Player newMasterClient)
-        {
-
-        }
-
-        public void OnPlayerEnteredRoom(Player newPlayer)
-        {
-
-        }
-
-        public void OnPlayerLeftRoom(Player otherPlayer)
-        {
-
-        }
-
-        public void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)
-        {
-
         }
     }
 }

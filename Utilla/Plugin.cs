@@ -1,13 +1,13 @@
 ﻿using BepInEx;
 using BepInEx.Logging;
+using HarmonyLib;
 using UnityEngine;
 using Utilla.Behaviours;
-using Utilla.HarmonyPatches;
 using Utilla.Tools;
 
 namespace Utilla
 {
-    [BepInPlugin(Constants.Guid, Constants.Name, Constants.Version)]
+    [BepInPlugin(Constants.GUID, Constants.Name, Constants.Version)]
     public class Plugin : BaseUnityPlugin
     {
         public static new ManualLogSource Logger;
@@ -16,7 +16,7 @@ namespace Utilla
         {
             Logger = base.Logger;
 
-            UtillaPatches.ApplyHarmonyPatches();
+            Harmony.CreateAndPatchAll(typeof(Plugin).Assembly, Constants.GUID);
 
             DontDestroyOnLoad(this);
         }

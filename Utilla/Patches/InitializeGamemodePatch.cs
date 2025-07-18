@@ -3,7 +3,7 @@ using GorillaNetworking;
 using HarmonyLib;
 using UnityEngine;
 
-namespace Utilla.HarmonyPatches.Patches
+namespace Utilla.Patches
 {
     [HarmonyPatch(typeof(GorillaComputer), nameof(GorillaComputer.InitializeGameMode))]
     internal class InitializeGamemodePatch

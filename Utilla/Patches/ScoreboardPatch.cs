@@ -1,14 +1,14 @@
 using HarmonyLib;
 using UnityEngine;
 
-namespace Utilla.HarmonyPatches.Patches
+namespace Utilla.Patches
 {
-    [HarmonyPatch(typeof(GorillaScoreboardSpawner), "OnJoinedRoom")]
+    [HarmonyPatch(typeof(GorillaScoreboardSpawner), nameof(GorillaScoreboardSpawner))]
     internal class ScoreboardPatch
     {
         public static void Prefix(ref GameObject ___notInRoomText)
         {
-            if (!___notInRoomText)
+            if (___notInRoomText == null || !___notInRoomText)
             {
                 ___notInRoomText = new GameObject();
             }

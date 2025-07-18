@@ -49,7 +49,7 @@
 		<Reference Include="Photon3Unity3D">
 			<HintPath>$(GameAssemblyPath)\Photon3Unity3D.dll</HintPath>
 		</Reference>
-		<Reference Include="PhotonRealtime">
+		<Reference Include="PhotonRealtime" Publicize="true">
 			<HintPath>$(GameAssemblyPath)\PhotonRealtime.dll</HintPath>
 		</Reference>
 		<Reference Include="PhotonUnityNetworking">

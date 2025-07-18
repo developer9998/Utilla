@@ -2,8 +2,9 @@
 using HarmonyLib;
 using Utilla.Behaviours;
 using Utilla.Models;
+using Utilla.Utils;
 
-namespace Utilla.HarmonyPatches.Patches
+namespace Utilla.Patches
 {
     [HarmonyPatch(typeof(GorillaComputer), nameof(GorillaComputer.UpdateGameModeText))]
     internal class GameModeTextPatch
@@ -20,7 +21,7 @@ namespace Utilla.HarmonyPatches.Patches
                 return false;
             }
 
-            Gamemode gamemode = UtillaNetworkController.Instance.CurrentGamemode;
+            Gamemode gamemode = GameModeUtils.CurrentGamemode;
             currentGameModeText.Value = $"CURRENT MODE\n{(gamemode is not null ? gamemode.DisplayName : "ERROR")}";
 
             return false;

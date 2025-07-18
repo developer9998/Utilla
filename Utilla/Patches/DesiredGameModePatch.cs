@@ -6,7 +6,7 @@ using Utilla.Models;
 using Utilla.Tools;
 using Utilla.Utils;
 
-namespace Utilla.HarmonyPatches.Patches
+namespace Utilla.Patches
 {
     [HarmonyPatch(typeof(GorillaNetworkJoinTrigger), nameof(GorillaNetworkJoinTrigger.GetDesiredGameType))]
     internal class DesiredGameModePatch
