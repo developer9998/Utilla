@@ -1,4 +1,7 @@
-﻿using System;
+﻿// TODO: make configurable
+
+/*
+using System;
 using System.Linq;
 using HarmonyLib;
 
@@ -18,3 +21,4 @@ namespace Utilla.Patches
         }
     }
 }
+*/

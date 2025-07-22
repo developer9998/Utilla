@@ -176,6 +176,8 @@ namespace Utilla.Behaviours
                 string moddedModeName = string.Concat(Constants.GamemodePrefix, currentGameMode);
                 if (gamemodeNames.Contains(moddedModeName))
                 {
+                    Logging.Message("Switching to modded variant");
+                    Logging.Info(moddedModeName);
                     GorillaComputer.instance.SetGameModeWithoutButton(moddedModeName);
                     CurrentPage = Mathf.Max(0, gamemodeNames.FindIndex(gamemode => gamemode == moddedModeName));
                     ShowPage();
@@ -184,6 +186,8 @@ namespace Utilla.Behaviours
             }
 
             currentGameMode = gamemodeNames.First();
+            Logging.Message("Switching to vanilla variant");
+            Logging.Info(currentGameMode);
             GorillaComputer.instance.SetGameModeWithoutButton(currentGameMode);
             CurrentPage = Mathf.Max(0, gamemodeNames.FindIndex(gamemode => gamemode == currentGameMode));
             ShowPage();
@@ -257,14 +261,12 @@ namespace Utilla.Behaviours
         public void NextPage()
         {
             CurrentPage = (CurrentPage + 1) % PageCount;
-
             ShowPage();
         }
 
         public void PreviousPage()
         {
             CurrentPage = (CurrentPage <= 0) ? PageCount - 1 : CurrentPage - 1;
-
             ShowPage();
         }
 

@@ -1,6 +1,5 @@
 ﻿using GorillaNetworking;
 using HarmonyLib;
-using Utilla.Behaviours;
 using Utilla.Models;
 using Utilla.Utils;
 
@@ -22,7 +21,7 @@ namespace Utilla.Patches
             }
 
             Gamemode gamemode = GameModeUtils.CurrentGamemode;
-            currentGameModeText.Value = $"CURRENT MODE\n{(gamemode is not null ? gamemode.DisplayName : "ERROR")}";
+            currentGameModeText.Value = $"CURRENT MODE\n{(gamemode is not null ? gamemode.DisplayName.ToUpper() : GorillaScoreBoard.error)}";
 
             return false;
         }
