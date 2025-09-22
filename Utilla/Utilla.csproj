@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<TargetFramework>netstandard2.1</TargetFramework>
-		<LangVersion>latest</LangVersion>
+		<LangVersion>preview</LangVersion>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -39,6 +39,9 @@
 		</Reference>
 		<Reference Include="Mono.Security">
 			<HintPath>$(GameAssemblyPath)\Mono.Security.dll</HintPath>
+		</Reference>
+		<Reference Include="Newtonsoft.Json">
+		  <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Gorilla Tag\Gorilla Tag_Data\Managed\Newtonsoft.Json.dll</HintPath>
 		</Reference>
 		<Reference Include="Oculus.Platform">
 			<HintPath>$(GameAssemblyPath)\Oculus.Platform.dll</HintPath>

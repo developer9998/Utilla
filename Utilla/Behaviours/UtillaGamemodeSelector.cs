@@ -56,6 +56,8 @@ namespace Utilla.Behaviours
 
             foreach (var mb in modeSelectButtons)
             {
+                mb.onPressed += OnButtonPressed;
+
                 TMP_Text gamemodeTitle = mb.gameModeTitle;
                 gamemodeTitle.enableAutoSizing = true;
                 gamemodeTitle.fontSizeMax = gamemodeTitle.fontSize;
@@ -167,6 +169,15 @@ namespace Utilla.Behaviours
 
             if (gamemodeNames.Contains(currentGameMode))
             {
+                ShowPage();
+                return;
+            }
+
+            string lastGameMode = PlayerPrefs.GetString($"utillaGameMode_{Zone.ToString().ToLower()}", "");
+            if (!string.IsNullOrEmpty(lastGameMode) && gamemodeNames.Contains(lastGameMode))
+            {
+                GorillaComputer.instance.SetGameModeWithoutButton(lastGameMode);
+                CurrentPage = Mathf.Max(0, gamemodeNames.FindIndex(gamemode => gamemode == lastGameMode));
                 ShowPage();
                 return;
             }
@@ -297,6 +308,14 @@ namespace Utilla.Behaviours
                 //if (forceCheck) button.OnGameModeChanged(GorillaComputer.instance.currentGameMode.Value);
                 //else button.OnGameModeChanged(GorillaComputer.instance.currentGameMode.Value);
             }
+        }
+
+        void OnButtonPressed(GorillaPressableButton button, bool isLeftHand)
+        {
+            if (button is not ModeSelectButton modeSelectButton || (modeSelectButton.WarningScreen?.ShouldShowWarning ?? false)) return;
+
+            string gameMode = modeSelectButton.gameMode;
+            PlayerPrefs.SetString($"utillaGameMode_{Zone.ToString().ToLower()}", gameMode);
         }
     }
 }
