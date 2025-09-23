@@ -25,7 +25,7 @@ namespace Utilla
         {
             Logging.Message("PostInitialized");
 
-            GameObject gameObject = new(Constants.Name, typeof(UtillaNetworkController), typeof(GamemodeManager), typeof(ConductBoardManager));
+            GameObject gameObject = new($"{Constants.Name} {Constants.Version}", typeof(UtillaNetworkController), typeof(GamemodeManager), typeof(ConductBoardManager));
             DontDestroyOnLoad(gameObject);
         }
     }

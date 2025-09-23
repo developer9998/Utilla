@@ -9,6 +9,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Networking;
+using Utilla.Tools;
 
 namespace Utilla.Behaviours
 {
@@ -17,7 +18,7 @@ namespace Utilla.Behaviours
     {
         private int PageCount => boardContent.Count;
 
-        private readonly List<BoardContent> boardContent = [];
+        private readonly List<BoardSection> boardContent = [];
 
         private ModeSelectButton buttonTemplate;
 
@@ -26,6 +27,8 @@ namespace Utilla.Behaviours
         private Transform conductTransform;
 
         private TextMeshPro headingText, bodyText;
+
+        private GameObject newSplash;
 
         private int currentPage = 0;
 
@@ -48,6 +51,11 @@ namespace Utilla.Behaviours
                 headingText.enableAutoSizing = true;
                 headingText.textWrappingMode = TextWrappingModes.NoWrap;
                 codeOfConductHeading = headingText.text;
+
+                newSplash = Instantiate(buttonTemplate.newModeSplash, headingText.transform);
+                newSplash.transform.localPosition = Vector3.down * 56.5f;
+                newSplash.transform.localEulerAngles = Vector3.zero;
+                newSplash.transform.localScale = Vector3.one * 19f;
             }
             else
             {
@@ -90,21 +98,6 @@ namespace Utilla.Behaviours
             DownloadEntries();
         }
 
-        private IEnumerator ButtonColourUpdate(GorillaPressableButton pressableButton)
-        {
-            pressableButton.isOn = true;
-            pressableButton.UpdateColor();
-            yield return new WaitForSeconds(pressableButton.debounceTime);
-
-            if ((pressableButton.touchTime + pressableButton.debounceTime) < Time.time)
-            {
-                pressableButton.isOn = false;
-                pressableButton.UpdateColor();
-            }
-
-            yield break;
-        }
-
         private void NextPage()
         {
             currentPage = (currentPage + 1) % PageCount;
@@ -119,27 +112,43 @@ namespace Utilla.Behaviours
 
         private void ShowPage()
         {
-            BoardContent content = boardContent.ElementAtOrDefault(Mathf.Max(0, Mathf.Min(currentPage, boardContent.Count - 1)));
-            headingText?.text = content.Heading;
-            bodyText?.text = content.Body;
+            if (headingText == null || bodyText == null) return;
+
+            BoardSection content = boardContent.ElementAtOrDefault(Mathf.Max(0, Mathf.Min(currentPage, boardContent.Count - 1)));
+            
+            if (headingText.text != content.Heading)
+            {
+                headingText.StartCoroutine(CrossfadeText(headingText, 0.2f, () =>
+                {
+                    headingText.text = content.Heading;
+                }));
+            }
+
+            if (bodyText.text != content.Body)
+            {
+                bodyText.StartCoroutine(CrossfadeText(bodyText, 0.2f, () =>
+                {
+                    bodyText.text = content.Body;
+                }));
+            }
         }
 
         private void CreateButton(float horizontalPosition, string text, Action onButtonPressed = null)
         {
-            GameObject primitive = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            primitive.transform.parent = conductTransform;
-            primitive.transform.localPosition = new Vector3(horizontalPosition, 0.52f, 0.13f);
-            primitive.transform.localRotation = Quaternion.Euler(353.5f, 0f, 0f);
-            primitive.transform.localScale = new Vector3(0.1427168f, 0.1427168f, 0.1f);
-            primitive.GetComponent<Renderer>().material = buttonTemplate.unpressedMaterial;
+            GameObject buttonObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            buttonObject.transform.parent = conductTransform;
+            buttonObject.transform.localPosition = new Vector3(horizontalPosition, 0.52f, 0.13f);
+            buttonObject.transform.localRotation = Quaternion.Euler(353.5f, 0f, 0f);
+            buttonObject.transform.localScale = new Vector3(0.1427168f, 0.1427168f, 0.1f);
+            buttonObject.GetComponent<Renderer>().material = buttonTemplate.unpressedMaterial;
 
-            GameObject child = new();
-            child.transform.parent = primitive.transform;
-            child.transform.localPosition = Vector3.forward * 0.525f;
-            child.transform.localRotation = Quaternion.AngleAxis(180f, Vector3.up);
-            child.transform.localScale = Vector3.one;
+            GameObject textObject = new();
+            textObject.transform.parent = buttonObject.transform;
+            textObject.transform.localPosition = Vector3.forward * 0.525f;
+            textObject.transform.localRotation = Quaternion.AngleAxis(180f, Vector3.up);
+            textObject.transform.localScale = Vector3.one;
 
-            TextMeshPro textMeshPro = child.AddComponent<TextMeshPro>();
+            TextMeshPro textMeshPro = textObject.AddComponent<TextMeshPro>();
             textMeshPro.font = buttonTemplate?.GetComponentInChildren<TMP_Text>().font ?? stumpRootObject.GetComponentInChildren<GorillaComputerTerminal>().myScreenText.font;
             textMeshPro.alignment = TextAlignmentOptions.Center;
             textMeshPro.characterSpacing = -10f;
@@ -148,8 +157,8 @@ namespace Utilla.Behaviours
             textMeshPro.color = new Color(0.1960784f, 0.1960784f, 0.1960784f);
             textMeshPro.text = text;
 
-            GorillaPressableButton pressableButton = primitive.AddComponent<GorillaPressableButton>();
-            pressableButton.buttonRenderer = primitive.GetComponent<MeshRenderer>();
+            GorillaPressableButton pressableButton = buttonObject.AddComponent<GorillaPressableButton>();
+            pressableButton.buttonRenderer = buttonObject.GetComponent<MeshRenderer>();
             pressableButton.unpressedMaterial = buttonTemplate.unpressedMaterial;
             pressableButton.pressedMaterial = buttonTemplate.pressedMaterial;
 
@@ -172,39 +181,86 @@ namespace Utilla.Behaviours
 
             if (webRequest.result != UnityWebRequest.Result.Success)
             {
+                Logging.Fatal($"ModData could not be accessed from {modDataLink}");
+                Logging.Info(webRequest.downloadHandler.error);
                 return;
             }
 
             JObject jsonObject = JObject.Parse(webRequest.downloadHandler.text);
-            BoardEntry[] jsonEntries = ((JArray)jsonObject.Property("conductBoardEntries").Value).ToObject<BoardEntry[]>();
+            BoardSectionRequest[] sectionRequestArray = ((JArray)jsonObject.Property("conductBoardSections").Value).ToObject<BoardSectionRequest[]>();
 
-            foreach (BoardEntry entry in jsonEntries)
+            foreach (BoardSectionRequest request in sectionRequestArray)
             {
-                string entryBodyLink = string.Concat(Constants.ModInfoRepository, entry.body);
+                string entryBodyLink = string.Concat(Constants.ModInfoRepository, request.body);
 
                 webRequest = UnityWebRequest.Get(entryBodyLink);
                 asyncOperation = webRequest.SendWebRequest();
                 await asyncOperation;
 
-                if (webRequest.result == UnityWebRequest.Result.Success)
+                if (webRequest.result != UnityWebRequest.Result.Success)
                 {
-                    boardContent.Add(new()
-                    {
-                        Heading = entry.title,
-                        Body = webRequest.downloadHandler.text
-                    });
+                    Logging.Fatal($"Body text could not be accessed from {entryBodyLink}");
+                    Logging.Error(webRequest.downloadHandler.error);
+                    continue;
                 }
+
+                boardContent.Add(new()
+                {
+                    Heading = request.title,
+                    Body = webRequest.downloadHandler.text
+                });
             }
         }
 
-        private struct BoardContent
+        private IEnumerator ButtonColourUpdate(GorillaPressableButton pressableButton)
+        {
+            pressableButton.isOn = true;
+            pressableButton.UpdateColor();
+            yield return new WaitForSeconds(pressableButton.debounceTime);
+
+            if ((pressableButton.touchTime + pressableButton.debounceTime) < Time.time)
+            {
+                pressableButton.isOn = false;
+                pressableButton.UpdateColor();
+            }
+
+            yield break;
+        }
+
+        private IEnumerator CrossfadeText(TMP_Text text, float duration, Action onTextReady)
+        {
+            float elapsed = 0f;
+            bool isTextReady = false;
+
+            while (elapsed < 1f)
+            {
+                elapsed += Time.deltaTime / duration;
+                float alpha = 1f - Mathf.PingPong(elapsed * 2f, 1f);
+                text.color = new Color(text.color.r, text.color.g, text.color.b, alpha);
+
+                if (elapsed >= 0.5f && !isTextReady)
+                {
+                    isTextReady = true;
+                    onTextReady?.Invoke();
+                }
+
+                yield return null;
+            }
+
+            text.color = new Color(text.color.r, text.color.g, text.color.b);
+
+            yield break;
+        }
+
+        private struct BoardSection
         {
             public string Heading;
 
             public string Body;
         }
 
-        private class BoardEntry
+        [Serializable]
+        private class BoardSectionRequest
         {
             public string title;
 
