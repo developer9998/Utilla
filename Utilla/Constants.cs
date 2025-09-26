@@ -10,6 +10,6 @@
 
         public const string GamemodePrefix = "MODDED_";
 
-        public const string ModInfoRepository = "https://raw.githubusercontent.com/developer9998/Utilla-Info/main/";
+        public const string InfoRepositoryURL = "https://raw.githubusercontent.com/developer9998/Utilla-Info/main/";
     }
 }

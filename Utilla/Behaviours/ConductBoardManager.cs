@@ -1,5 +1,6 @@
 ﻿using GorillaNetworking;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -18,7 +19,7 @@ namespace Utilla.Behaviours
     {
         private int PageCount => boardContent.Count;
 
-        private readonly List<BoardSection> boardContent = [];
+        private readonly List<Section> boardContent = [];
 
         private ModeSelectButton buttonTemplate;
 
@@ -56,6 +57,7 @@ namespace Utilla.Behaviours
                 newSplash.transform.localPosition = Vector3.down * 56.5f;
                 newSplash.transform.localEulerAngles = Vector3.zero;
                 newSplash.transform.localScale = Vector3.one * 19f;
+                newSplash.SetActive(false);
             }
             else
             {
@@ -87,7 +89,7 @@ namespace Utilla.Behaviours
 
             boardContent.Insert(0, new()
             {
-                Heading = codeOfConductHeading,
+                Title = codeOfConductHeading,
                 Body = codeOfConductBody
             });
 
@@ -114,23 +116,9 @@ namespace Utilla.Behaviours
         {
             if (headingText == null || bodyText == null) return;
 
-            BoardSection content = boardContent.ElementAtOrDefault(Mathf.Max(0, Mathf.Min(currentPage, boardContent.Count - 1)));
-            
-            if (headingText.text != content.Heading)
-            {
-                headingText.StartCoroutine(CrossfadeText(headingText, 0.2f, () =>
-                {
-                    headingText.text = content.Heading;
-                }));
-            }
-
-            if (bodyText.text != content.Body)
-            {
-                bodyText.StartCoroutine(CrossfadeText(bodyText, 0.2f, () =>
-                {
-                    bodyText.text = content.Body;
-                }));
-            }
+            Section content = boardContent.ElementAtOrDefault(Mathf.Max(0, Mathf.Min(currentPage, boardContent.Count - 1)));
+            headingText.text = content.Title;
+            bodyText.text = content.Body;
         }
 
         private void CreateButton(float horizontalPosition, string text, Action onButtonPressed = null)
@@ -141,6 +129,8 @@ namespace Utilla.Behaviours
             buttonObject.transform.localRotation = Quaternion.Euler(353.5f, 0f, 0f);
             buttonObject.transform.localScale = new Vector3(0.1427168f, 0.1427168f, 0.1f);
             buttonObject.GetComponent<Renderer>().material = buttonTemplate.unpressedMaterial;
+            buttonObject.GetComponent<Collider>().isTrigger = true;
+            buttonObject.SetLayer(UnityLayer.GorillaInteractable);
 
             GameObject textObject = new();
             textObject.transform.parent = buttonObject.transform;
@@ -149,7 +139,7 @@ namespace Utilla.Behaviours
             textObject.transform.localScale = Vector3.one;
 
             TextMeshPro textMeshPro = textObject.AddComponent<TextMeshPro>();
-            textMeshPro.font = buttonTemplate?.GetComponentInChildren<TMP_Text>().font ?? stumpRootObject.GetComponentInChildren<GorillaComputerTerminal>().myScreenText.font;
+            textMeshPro.font = buttonTemplate?.GetComponentInChildren<TMP_Text>()?.font ?? stumpRootObject.GetComponentInChildren<GorillaComputerTerminal>()?.myScreenText?.font;
             textMeshPro.alignment = TextAlignmentOptions.Center;
             textMeshPro.characterSpacing = -10f;
             textMeshPro.overflowMode = TextOverflowModes.Overflow;
@@ -173,7 +163,7 @@ namespace Utilla.Behaviours
 
         public async void DownloadEntries()
         {
-            string modDataLink = string.Concat(Constants.ModInfoRepository, "ModData.json");
+            string modDataLink = string.Concat(Constants.InfoRepositoryURL, "ModData.json");
 
             UnityWebRequest webRequest = UnityWebRequest.Get(modDataLink);
             UnityWebRequestAsyncOperation asyncOperation = webRequest.SendWebRequest();
@@ -187,7 +177,34 @@ namespace Utilla.Behaviours
             }
 
             JObject jsonObject = JObject.Parse(webRequest.downloadHandler.text);
-            BoardSectionRequest[] sectionRequestArray = ((JArray)jsonObject.Property("conductBoardSections").Value).ToObject<BoardSectionRequest[]>();
+            JArray jsonArray = (JArray)jsonObject.Property("conductBoardSections").Value;
+
+            foreach (JObject item in jsonArray.Cast<JObject>())
+            {
+                Logging.Message(item.ToString(Formatting.Indented));
+
+                string title = (string)item.Property("title").Value;
+
+                webRequest = UnityWebRequest.Get(string.Concat(Constants.InfoRepositoryURL, (string)item.Property("body").Value));
+                asyncOperation = webRequest.SendWebRequest();
+                await asyncOperation;
+
+                if (webRequest.result != UnityWebRequest.Result.Success)
+                {
+                    Logging.Fatal($"Body text could not be accessed from {webRequest.url}");
+                    Logging.Error(webRequest.downloadHandler.error);
+                    continue;
+                }
+
+                boardContent.Add(new()
+                {
+                    Title = title,
+                    Body = webRequest.downloadHandler.text
+                });
+            }
+
+            /*
+            BoardSectionRequest[] sectionRequestArray = ().ToObject<BoardSectionRequest[]>();
 
             foreach (BoardSectionRequest request in sectionRequestArray)
             {
@@ -210,14 +227,15 @@ namespace Utilla.Behaviours
                     Body = webRequest.downloadHandler.text
                 });
             }
+            */
         }
 
         private IEnumerator ButtonColourUpdate(GorillaPressableButton pressableButton)
         {
             pressableButton.isOn = true;
             pressableButton.UpdateColor();
-            yield return new WaitForSeconds(pressableButton.debounceTime);
 
+            yield return new WaitForSeconds(pressableButton.debounceTime);
             if ((pressableButton.touchTime + pressableButton.debounceTime) < Time.time)
             {
                 pressableButton.isOn = false;
@@ -227,44 +245,13 @@ namespace Utilla.Behaviours
             yield break;
         }
 
-        private IEnumerator CrossfadeText(TMP_Text text, float duration, Action onTextReady)
+        private struct Section
         {
-            float elapsed = 0f;
-            bool isTextReady = false;
+            [TextArea(1, 1)]
+            public string Title;
 
-            while (elapsed < 1f)
-            {
-                elapsed += Time.deltaTime / duration;
-                float alpha = 1f - Mathf.PingPong(elapsed * 2f, 1f);
-                text.color = new Color(text.color.r, text.color.g, text.color.b, alpha);
-
-                if (elapsed >= 0.5f && !isTextReady)
-                {
-                    isTextReady = true;
-                    onTextReady?.Invoke();
-                }
-
-                yield return null;
-            }
-
-            text.color = new Color(text.color.r, text.color.g, text.color.b);
-
-            yield break;
-        }
-
-        private struct BoardSection
-        {
-            public string Heading;
-
+            [TextArea(12, 32)]
             public string Body;
-        }
-
-        [Serializable]
-        private class BoardSectionRequest
-        {
-            public string title;
-
-            public string body;
         }
     }
 }
