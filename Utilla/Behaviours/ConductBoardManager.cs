@@ -163,29 +163,24 @@ namespace Utilla.Behaviours
 
         public async void DownloadEntries()
         {
-            string modDataLink = string.Concat(Constants.InfoRepositoryURL, "ModData.json");
-
-            UnityWebRequest webRequest = UnityWebRequest.Get(modDataLink);
+            UnityWebRequest webRequest = UnityWebRequest.Get(string.Join('/', Constants.InfoRepositoryURL, "ConductBoard", "Entries.json"));
             UnityWebRequestAsyncOperation asyncOperation = webRequest.SendWebRequest();
             await asyncOperation;
 
             if (webRequest.result != UnityWebRequest.Result.Success)
             {
-                Logging.Fatal($"ModData could not be accessed from {modDataLink}");
+                Logging.Fatal($"ModData could not be accessed from {webRequest.url}");
                 Logging.Info(webRequest.downloadHandler.error);
                 return;
             }
 
-            JObject jsonObject = JObject.Parse(webRequest.downloadHandler.text);
-            JArray jsonArray = (JArray)jsonObject.Property("conductBoardSections").Value;
+            JArray jsonArray = JArray.Parse(webRequest.downloadHandler.text);
 
             foreach (JObject item in jsonArray.Cast<JObject>())
             {
                 Logging.Message(item.ToString(Formatting.Indented));
 
-                string title = (string)item.Property("title").Value;
-
-                webRequest = UnityWebRequest.Get(string.Concat(Constants.InfoRepositoryURL, (string)item.Property("body").Value));
+                webRequest = UnityWebRequest.Get(string.Join('/', Constants.InfoRepositoryURL, (string)item.Property("body").Value));
                 asyncOperation = webRequest.SendWebRequest();
                 await asyncOperation;
 
@@ -198,36 +193,10 @@ namespace Utilla.Behaviours
 
                 boardContent.Add(new()
                 {
-                    Title = title,
+                    Title = (string)item.Property("title").Value,
                     Body = webRequest.downloadHandler.text
                 });
             }
-
-            /*
-            BoardSectionRequest[] sectionRequestArray = ().ToObject<BoardSectionRequest[]>();
-
-            foreach (BoardSectionRequest request in sectionRequestArray)
-            {
-                string entryBodyLink = string.Concat(Constants.ModInfoRepository, request.body);
-
-                webRequest = UnityWebRequest.Get(entryBodyLink);
-                asyncOperation = webRequest.SendWebRequest();
-                await asyncOperation;
-
-                if (webRequest.result != UnityWebRequest.Result.Success)
-                {
-                    Logging.Fatal($"Body text could not be accessed from {entryBodyLink}");
-                    Logging.Error(webRequest.downloadHandler.error);
-                    continue;
-                }
-
-                boardContent.Add(new()
-                {
-                    Heading = request.title,
-                    Body = webRequest.downloadHandler.text
-                });
-            }
-            */
         }
 
         private IEnumerator ButtonColourUpdate(GorillaPressableButton pressableButton)
