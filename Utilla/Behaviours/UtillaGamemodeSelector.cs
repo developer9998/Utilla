@@ -119,7 +119,7 @@ namespace Utilla.Behaviours
             Logging.Info($"GetSelectorGameModes {Zone}");
 
             GameModeType[] modesForZone = [.. GameMode.GameModeZoneMapping.GetModesForZone(Zone, NetworkSystem.Instance.SessionIsPrivate)];
-            
+
             // Base gamemodes
             for (int i = 0; i < modesForZone.Length; i++)
             {

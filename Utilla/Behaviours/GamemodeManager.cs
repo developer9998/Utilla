@@ -56,7 +56,7 @@ namespace Utilla.Behaviours
             GorillaComputer.instance.currentGameMode.Value = currentGameMode;
 
             GameModeType[] gameModeTypes = [.. Enum.GetValues(typeof(GameModeType)).Cast<GameModeType>()];
-            for(int i = 0; i < gameModeTypes.Length; i++)
+            for (int i = 0; i < gameModeTypes.Length; i++)
             {
                 if (i == (int)GameModeType.Count) break;
 

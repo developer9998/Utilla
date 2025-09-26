@@ -31,7 +31,7 @@ namespace Utilla.Behaviours
                 client.UpdateCallbackTargets();
                 MatchMakingCallbacksContainer callbackContainer = client.MatchMakingCallbackTargets;
 
-                for(int i = 0; i < callbackContainer.Count; i++)
+                for (int i = 0; i < callbackContainer.Count; i++)
                 {
                     IMatchmakingCallbacks individualCallback = callbackContainer[i];
                     if ((object)individualCallback is MonoBehaviour behaviour && behaviour.gameObject == netSys.gameObject)

@@ -8,7 +8,7 @@ using Utilla.Tools;
 namespace Utilla
 {
     [BepInPlugin(Constants.GUID, Constants.Name, Constants.Version)]
-    public class Plugin : BaseUnityPlugin
+    internal class Plugin : BaseUnityPlugin
     {
         public static new ManualLogSource Logger;
 

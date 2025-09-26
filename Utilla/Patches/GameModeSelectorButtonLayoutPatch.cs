@@ -4,7 +4,7 @@ using Utilla.Behaviours;
 namespace Utilla.Patches
 {
     [HarmonyPatch(typeof(GameModeSelectorButtonLayout))]
-    public class GameModeSelectorButtonLayoutPatch
+    internal class GameModeSelectorButtonLayoutPatch
     {
         [HarmonyPatch("OnEnable"), HarmonyPrefix]
         public static bool OnEnablePatch(GameModeSelectorButtonLayout __instance)

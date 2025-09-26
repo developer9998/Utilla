@@ -5,7 +5,7 @@ using Utilla.Utils;
 namespace Utilla.Patches
 {
     [HarmonyPatch(typeof(GorillaScoreBoard), nameof(GorillaScoreBoard.RoomType)), HarmonyPriority(Priority.VeryHigh)]
-    public class ScoreBoardRoomNamePatch
+    internal class ScoreBoardRoomNamePatch
     {
         public static bool Prefix(ref string __result)
         {
