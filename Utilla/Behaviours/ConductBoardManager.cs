@@ -174,9 +174,7 @@ namespace Utilla.Behaviours
                 return;
             }
 
-            JArray jsonArray = JArray.Parse(webRequest.downloadHandler.text);
-
-            foreach (JObject item in jsonArray.Cast<JObject>())
+            foreach (JObject item in JArray.Parse(webRequest.downloadHandler.text).Cast<JObject>())
             {
                 Logging.Message(item.ToString(Formatting.Indented));
 

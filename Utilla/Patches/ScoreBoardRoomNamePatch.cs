@@ -10,8 +10,14 @@ namespace Utilla.Patches
         public static bool Prefix(ref string __result)
         {
             Gamemode gamemode = GameModeUtils.CurrentGamemode;
-            __result = gamemode is not null ? gamemode.DisplayName.ToUpper() : GorillaScoreBoard.error;
-            return false;
+
+            if (gamemode != null)
+            {
+                __result = gamemode.DisplayName.ToUpper();
+                return false;
+            }
+
+            return true;
         }
     }
 }

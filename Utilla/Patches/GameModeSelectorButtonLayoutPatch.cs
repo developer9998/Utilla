@@ -10,12 +10,14 @@ namespace Utilla.Patches
         public static bool OnEnablePatch(GameModeSelectorButtonLayout __instance)
         {
             __instance.SetupButtons();
+
             if (__instance.TryGetComponent(out UtillaGamemodeSelector selector))
             {
                 selector.CheckGameMode();
                 selector.ShowPage();
             }
             else __instance.AddComponent<UtillaGamemodeSelector>();
+
             return false;
         }
 
