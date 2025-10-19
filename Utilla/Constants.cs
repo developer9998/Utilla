@@ -6,7 +6,7 @@
 
         internal const string Name = "Utilla";
 
-        internal const string Version = "1.6.20";
+        internal const string Version = "1.6.21";
 
         public const string GamemodePrefix = "MODDED_";
 
