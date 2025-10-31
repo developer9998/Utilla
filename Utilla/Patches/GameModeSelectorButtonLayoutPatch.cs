@@ -1,37 +1,42 @@
 using HarmonyLib;
 using Utilla.Behaviours;
 
-namespace Utilla.Patches
+namespace Utilla.Patches;
+
+[HarmonyPatch(typeof(GameModeSelectorButtonLayout))]
+internal class GameModeSelectorButtonLayoutPatch
 {
-    [HarmonyPatch(typeof(GameModeSelectorButtonLayout))]
-    internal class GameModeSelectorButtonLayoutPatch
+    [HarmonyPatch("OnEnable")]
+    [HarmonyPrefix]
+    public static bool OnEnablePatch(GameModeSelectorButtonLayout __instance)
     {
-        [HarmonyPatch("OnEnable"), HarmonyPrefix]
-        public static bool OnEnablePatch(GameModeSelectorButtonLayout __instance)
+        __instance.SetupButtons();
+
+        if (__instance.TryGetComponent(out UtillaGamemodeSelector selector))
         {
-            __instance.SetupButtons();
-
-            if (__instance.TryGetComponent(out UtillaGamemodeSelector selector))
-            {
-                selector.CheckGameMode();
-                selector.ShowPage();
-            }
-            else __instance.AddComponent<UtillaGamemodeSelector>();
-
-            return false;
+            selector.CheckGameMode();
+            selector.ShowPage();
+        }
+        else
+        {
+            __instance.AddComponent<UtillaGamemodeSelector>();
         }
 
-        [HarmonyPatch(nameof(GameModeSelectorButtonLayout.SetupButtons)), HarmonyPrefix]
-        public static void SetupButtonsPrefix(GameModeSelectorButtonLayout __instance)
-        {
-            NetworkSystem.Instance.OnJoinedRoomEvent -= __instance.SetupButtons;
-            SetGameModePatch.PreventSettingMode = true;
-        }
+        return false;
+    }
 
-        [HarmonyPatch(nameof(GameModeSelectorButtonLayout.SetupButtons)), HarmonyPostfix]
-        public static void SetupButtonsPostfix(GameModeSelectorButtonLayout __instance)
-        {
-            SetGameModePatch.PreventSettingMode = false;
-        }
+    [HarmonyPatch(nameof(GameModeSelectorButtonLayout.SetupButtons))]
+    [HarmonyPrefix]
+    public static void SetupButtonsPrefix(GameModeSelectorButtonLayout __instance)
+    {
+        NetworkSystem.Instance.OnJoinedRoomEvent -= __instance.SetupButtons;
+        SetGameModePatch.PreventSettingMode      =  true;
+    }
+
+    [HarmonyPatch(nameof(GameModeSelectorButtonLayout.SetupButtons))]
+    [HarmonyPostfix]
+    public static void SetupButtonsPostfix(GameModeSelectorButtonLayout __instance)
+    {
+        SetGameModePatch.PreventSettingMode = false;
     }
 }
