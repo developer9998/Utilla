@@ -250,14 +250,17 @@ namespace Utilla.Behaviours
                 var pressable_button = button.AddComponent<GorillaPressableButton>();
                 pressable_button.onPressButton = unityEvent;
 
+                if (button.transform.Find("NewSplash") is Transform splash && splash && splash.gameObject.activeSelf)
+                    splash.gameObject.SetActive(false);
+
                 return button;
             }
 
             GameObject nextPageButton = CreatePageButton("-->", NextPage);
-            nextPageButton.transform.localPosition = new Vector3(-0.745f, nextPageButton.transform.position.y + 0.005f, nextPageButton.transform.position.z - 0.03f);
+            nextPageButton.transform.localPosition = new Vector3(-0.745f, -0.095f, nextPageButton.transform.position.z - 0.03f);
 
             GameObject previousPageButton = CreatePageButton("<--", PreviousPage);
-            previousPageButton.transform.localPosition = new Vector3(-0.745f, -0.633f, previousPageButton.transform.position.z - 0.03f);
+            previousPageButton.transform.localPosition = new Vector3(-0.745f, -0.75f, previousPageButton.transform.position.z - 0.03f);
 
             Destroy(cube);
 
