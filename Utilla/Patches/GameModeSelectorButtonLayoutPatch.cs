@@ -6,7 +6,7 @@ namespace Utilla.Patches
     [HarmonyPatch(typeof(GameModeSelectorButtonLayout))]
     internal class GameModeSelectorButtonLayoutPatch
     {
-        [HarmonyPatch("OnEnable"), HarmonyPrefix]
+        [HarmonyPatch(nameof(GameModeSelectorButtonLayout.OnEnable)), HarmonyPrefix]
         public static bool OnEnablePatch(GameModeSelectorButtonLayout __instance)
         {
             __instance.SetupButtons();
