@@ -99,6 +99,7 @@ namespace Utilla.Behaviours
             CreateButton(1f, "<--", PrevPage);
 
             ShowPage();
+            CheckVersion();
             DownloadEntries();
         }
 
@@ -178,6 +179,27 @@ namespace Utilla.Behaviours
             }));
             onPressEvent.AddListener(new UnityAction(onButtonPressed));
             pressableButton.onPressButton = onPressEvent;
+        }
+
+        public async void CheckVersion()
+        {
+            UnityWebRequest webRequest = UnityWebRequest.Get(string.Join('/', Constants.InfoRepositoryURL, "Version.txt"));
+            UnityWebRequestAsyncOperation asyncOperation = webRequest.SendWebRequest();
+            await asyncOperation;
+
+            if (webRequest.result != UnityWebRequest.Result.Success)
+            {
+                Logging.Fatal($"Version could not be accessed from {webRequest.url}");
+                Logging.Info(webRequest.downloadHandler.error);
+                return;
+            }
+
+            if (Version.TryParse(Constants.Version, out Version installedVersion) && Version.TryParse(webRequest.downloadHandler.text, out Version latestVersion) && latestVersion > installedVersion)
+            {
+                footerText.color = Color.red;
+                footerText.fontSize *= 0.85f;
+                footerText.text = $"{Constants.Name} {Constants.Version} - please update to {latestVersion}".ToUpper();
+            }
         }
 
         public async void DownloadEntries()
