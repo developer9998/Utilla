@@ -4,9 +4,9 @@ namespace Utilla.Tools
 {
     internal class Logging
     {
-        public static void Info(object data) => Log(data, LogLevel.Info);
-
         public static void Message(object data) => Log(data, LogLevel.Message);
+
+        public static void Info(object data) => Log(data, LogLevel.Info);
 
         public static void Warning(object data) => Log(data, LogLevel.Warning);
 

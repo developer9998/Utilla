@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Threading.Tasks;
 using UnityEngine;
 using Utilla.Attributes;
 using Utilla.Models;
@@ -19,6 +20,10 @@ namespace Utilla.Behaviours
     {
         public static GamemodeManager Instance { get; private set; }
         public static bool HasInstance => Instance != null;
+
+        public static bool Initialized => InitializeTask.Task.IsCompleted;
+        public static TaskCompletionSource<GamemodeManager> InitializeTask { get; private set; } = new();
+
         public List<Gamemode> Gamemodes { get; private set; }
         public List<Gamemode> ModdedGamemodes { get; private set; }
 
@@ -47,6 +52,8 @@ namespace Utilla.Behaviours
 
         public void Start()
         {
+            if (InitializeTask.Task.IsCompleted) return;
+
             gtGameModeNames = GameMode.gameModeNames;
 
             customGameModeContainer = new GameObject("Utilla Custom GameModes");
@@ -94,6 +101,8 @@ namespace Utilla.Behaviours
             originalSelector.PageCount = Mathf.CeilToInt(avaliableModes.Count / (float)pageCapacity);
             originalSelector.CurrentPage = (selectedMode != -1 && selectedMode < avaliableModes.Count) ? Mathf.FloorToInt(selectedMode / (float)pageCapacity) : 0;
             originalSelector.ShowPage();
+
+            InitializeTask.SetResult(this);
         }
 
         public List<Gamemode> GetGamemodes(List<PluginInfo> infos)

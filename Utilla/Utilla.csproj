@@ -82,6 +82,9 @@
 		<Reference Include="Unity.InputSystem">
 			<HintPath>$(GameAssemblyPath)\Unity.InputSystem.dll</HintPath>
 		</Reference>
+		<Reference Include="Unity.Localization">
+		  <HintPath>$(GameAssemblyPath)\Unity.Localization.dll</HintPath>
+		</Reference>
 		<Reference Include="Unity.TextMeshPro">
 			<HintPath>$(GameAssemblyPath)\Unity.TextMeshPro.dll</HintPath>
 		</Reference>

@@ -8,7 +8,7 @@ namespace Utilla.Patches
     {
         public static bool PreventSettingMode;
 
-        [HarmonyPrefix]
+        [HarmonyPrefix, HarmonyPriority(Priority.First)]
         public static bool Prefix() => !PreventSettingMode;
     }
 }

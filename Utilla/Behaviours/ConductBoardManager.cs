@@ -1,11 +1,11 @@
 ﻿using GorillaNetworking;
+using GorillaTag;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
@@ -14,7 +14,6 @@ using Utilla.Tools;
 
 namespace Utilla.Behaviours
 {
-    // TODO: expand range to support conduct board in virtual stump
     internal class ConductBoardManager : MonoBehaviour
     {
         private int PageCount => boardContent.Count;
@@ -27,9 +26,7 @@ namespace Utilla.Behaviours
 
         private Transform conductTransform;
 
-        private TextMeshPro headingText, bodyText;
-
-        private GameObject newSplash;
+        private TextMeshPro baseHeaderText, baseBodyText, headerText, bodyText, footerText;
 
         private int currentPage = 0;
 
@@ -43,55 +40,60 @@ namespace Utilla.Behaviours
             stumpRootObject = Array.Find(ZoneManagement.instance.GetZoneData(startZone).rootGameObjects, gameObject => gameObject.name == "TreeRoom");
             conductTransform = stumpRootObject.transform.FindChildRecursive("code of conduct");
 
-            string codeOfConductHeading, codeOfConductBody;
-
-            headingText = stumpRootObject.transform.FindChildRecursive("CodeOfConductHeadingText")?.GetComponent<TextMeshPro>();
-            if (headingText != null)
+            baseHeaderText = stumpRootObject.transform.FindChildRecursive("CodeOfConductHeadingText")?.GetComponent<TextMeshPro>();
+            if (baseHeaderText == null)
             {
-                headingText.fontSizeMax = headingText.fontSize;
-                headingText.enableAutoSizing = true;
-                headingText.textWrappingMode = TextWrappingModes.NoWrap;
-                codeOfConductHeading = headingText.text;
-
-                newSplash = Instantiate(buttonTemplate.newModeSplash, headingText.transform);
-                newSplash.transform.localPosition = Vector3.down * 56.5f;
-                newSplash.transform.localEulerAngles = Vector3.zero;
-                newSplash.transform.localScale = Vector3.one * 19f;
-                newSplash.SetActive(false);
-            }
-            else
-            {
-                codeOfConductHeading = "GORILLA CODE OF CONDUCT";
+                Logging.Warning("COC (Code of Conduct) header text is missing");
+                return;
             }
 
-            bodyText = stumpRootObject.transform.FindChildRecursive("COCBodyText")?.GetComponent<TextMeshPro>();
-            if (bodyText != null)
+            GameObject headingTextObject = Instantiate(baseHeaderText.gameObject);
+            headingTextObject.transform.position = baseHeaderText.transform.position;
+            headingTextObject.transform.rotation = baseHeaderText.transform.rotation;
+            headingTextObject.transform.localScale = baseHeaderText.transform.localScale;
+            SanitizeTextObject(headingTextObject);
+
+            headerText = headingTextObject.GetComponent<TextMeshPro>();
+            headerText.fontSizeMax = baseHeaderText.fontSize;
+            headerText.enableAutoSizing = true;
+            headerText.textWrappingMode = TextWrappingModes.NoWrap;
+
+            GameObject footerTextObject = Instantiate(baseHeaderText.gameObject);
+            footerTextObject.transform.position = baseHeaderText.transform.position;
+            footerTextObject.transform.rotation = baseHeaderText.transform.rotation;
+            footerTextObject.transform.localScale = baseHeaderText.transform.localScale;
+            SanitizeTextObject(footerTextObject);
+
+            footerText = footerTextObject.GetComponent<TextMeshPro>();
+            footerText.text = $"{Constants.Name} {Constants.Version}".ToUpper();
+            footerText.enableAutoSizing = false;
+            footerText.fontSize = 45;
+            footerText.margin = new Vector4(0f, 110f, 0f, 0f);
+            footerText.characterSpacing = -11.5f;
+            footerText.enabled = true;
+            footerText.renderer.enabled = true;
+
+            baseBodyText = stumpRootObject.transform.FindChildRecursive("COCBodyText")?.GetComponent<TextMeshPro>();
+            if (baseBodyText == null)
             {
-                bodyText.fontSizeMax = bodyText.fontSize;
-                bodyText.fontSizeMin = 0f;
-                bodyText.enableAutoSizing = true;
-                bodyText.margin = new Vector4(0f, 0f, 0f, 36f);
-                bodyText.richText = true;
-                codeOfConductBody = bodyText.text;
-            }
-            else
-            {
-                StringBuilder str = new();
-                str.AppendLine("- NO RACISM, SEXISM, HOMOPHOBIA, TRANSPHOBIA, OR OTHER BIGOTRY");
-                str.AppendLine("- NO CHEATS OR MODS");
-                str.AppendLine("- DO NOT HARASS OTHER PLAYERS OR INTENTIONALLY MAKE THEM UNCOMFORTABLE");
-                str.AppendLine("- DO NOT TROLL OR GRIEF LOBBIES BY BEING UNCATCHABLE OR BY ESCAPING THE MAP. TRY TO MAKE SURE EVERYONE IS HAVING FUN");
-                str.AppendLine("- IF SOMEONE IS BREAKING THIS CODE, PLEASE REPORT THEM");
-                str.Append("- PLEASE BE NICE GORILLAS AND HAVE A GOOD TIME");
-                codeOfConductBody = str.ToString();
-                str = null;
+                Logging.Warning("COC (Code of Conduct) body text is missing");
+                return;
             }
 
-            boardContent.Insert(0, new()
-            {
-                Title = codeOfConductHeading,
-                Body = codeOfConductBody
-            });
+            GameObject bodyTextObject = Instantiate(baseBodyText.gameObject);
+            bodyTextObject.transform.position = baseBodyText.transform.position;
+            bodyTextObject.transform.rotation = baseBodyText.transform.rotation;
+            bodyTextObject.transform.localScale = baseBodyText.transform.localScale;
+            SanitizeTextObject(bodyTextObject);
+
+            bodyText = bodyTextObject.GetComponent<TextMeshPro>();
+            bodyText.fontSizeMax = baseBodyText.fontSize;
+            bodyText.fontSizeMin = 0f;
+            bodyText.enableAutoSizing = true;
+            bodyText.margin = new Vector4(0f, 0f, 0f, 36f);
+            bodyText.richText = true;
+
+            boardContent.Insert(0, new());
 
             CreateButton(-1f, "-->", NextPage);
             CreateButton(1f, "<--", PrevPage);
@@ -114,11 +116,28 @@ namespace Utilla.Behaviours
 
         private void ShowPage()
         {
-            if (headingText == null || bodyText == null) return;
+            if (baseHeaderText == null || baseBodyText == null) return;
 
             Section content = boardContent.ElementAtOrDefault(Mathf.Max(0, Mathf.Min(currentPage, boardContent.Count - 1)));
-            headingText.text = content.Title;
-            bodyText.text = content.Body;
+
+            if (content.UseBaseText)
+            {
+                baseHeaderText.enabled = true;
+                headerText.enabled = false;
+
+                baseBodyText.enabled = true;
+                bodyText.enabled = false;
+            }
+            else
+            {
+                baseHeaderText.enabled = false;
+                headerText.enabled = true;
+                headerText.text = content.Title;
+
+                baseBodyText.enabled = false;
+                bodyText.enabled = true;
+                bodyText.text = content.Body;
+            }
         }
 
         private void CreateButton(float horizontalPosition, string text, Action onButtonPressed = null)
@@ -189,11 +208,7 @@ namespace Utilla.Behaviours
                     continue;
                 }
 
-                boardContent.Add(new()
-                {
-                    Title = (string)item.Property("title").Value,
-                    Body = webRequest.downloadHandler.text
-                });
+                boardContent.Add(new((string)item.Property("title").Value, webRequest.downloadHandler.text));
             }
         }
 
@@ -212,13 +227,39 @@ namespace Utilla.Behaviours
             yield break;
         }
 
+        private void SanitizeTextObject(GameObject gameObject)
+        {
+            Type[] typesToRemove = [typeof(PlayFabTitleDataTextDisplay), typeof(LocalizedText), typeof(StaticLodGroup)];
+            Component[] components = gameObject.GetComponents<Component>();
+
+            for (int i = 0; i < components.Length; i++)
+            {
+                Type type = components[i].GetType();
+                if (typesToRemove.Contains(type)) Destroy(components[i]);
+            }
+        }
+
         private struct Section
         {
+            public bool UseBaseText;
+
             [TextArea(1, 1)]
             public string Title;
 
             [TextArea(12, 32)]
             public string Body;
+
+            public Section()
+            {
+                UseBaseText = true;
+            }
+
+            public Section(string title, string body)
+            {
+                UseBaseText = false;
+                Title = title;
+                Body = body;
+            }
         }
     }
 }
