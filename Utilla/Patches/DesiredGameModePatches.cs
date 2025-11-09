@@ -8,17 +8,17 @@ using Utilla.Utils;
 
 namespace Utilla.Patches
 {
-    [HarmonyPatch(typeof(GorillaNetworkJoinTrigger), nameof(GorillaNetworkJoinTrigger.GetDesiredGameType))]
-    internal class DesiredGameModePatch
+    [HarmonyPatch(typeof(GorillaNetworkJoinTrigger))]
+    internal class DesiredGameModePatches
     {
-        public static bool Prefix(GorillaNetworkJoinTrigger __instance, ref string __result, ref GTZone ___zone)
+        [HarmonyPatch(nameof(GorillaNetworkJoinTrigger.GetDesiredGameType)), HarmonyPrefix]
+        public static bool DesiredGameTypePatch(GorillaNetworkJoinTrigger __instance, ref string __result, ref GTZone ___zone)
         {
             Type joinTriggerType = __instance.GetType();
 
             Logging.Info($"{joinTriggerType.Name}.{nameof(GorillaNetworkJoinTrigger.GetDesiredGameType)}");
 
-            // TODO: check whether this hardcoded check is necessary
-            if (joinTriggerType == typeof(GorillaNetworkRankedJoinTrigger))
+            if (joinTriggerType == typeof(GorillaNetworkRankedJoinTrigger) || ___zone == GTZone.ranked)
             {
                 Logging.Message($"Ranked JoinTrigger resorting to hardcoded infection mode");
                 __result = GameModeType.InfectionCompetitive.ToString();
@@ -54,5 +54,8 @@ namespace Utilla.Patches
             Logging.Message($"JoinTrigger of {___zone.GetName()} naturally allows game mode: {currentGameMode}");
             return true;
         }
+
+        [HarmonyPatch(nameof(GorillaNetworkJoinTrigger.GetDesiredGameTypeLocalized)), HarmonyPrefix]
+        public static bool DesiredLocalizedGameTypePatch(GorillaNetworkJoinTrigger __instance, ref string __result, ref GTZone ___zone) => DesiredGameTypePatch(__instance, ref __result, ref ___zone);
     }
 }
