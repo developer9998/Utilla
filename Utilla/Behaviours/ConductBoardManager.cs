@@ -32,12 +32,9 @@ namespace Utilla.Behaviours
 
         public void Start()
         {
-            GTZone startZone = PhotonNetworkController.Instance.StartZone;
-            if (!UtillaGamemodeSelector.SelectorLookup.TryGetValue(startZone, out UtillaGamemodeSelector originalSelector)) return;
+            buttonTemplate = FindFirstObjectByType<GameModeSelectorButtonLayout>().pf_button;
 
-            buttonTemplate = originalSelector.Layout.pf_button;
-
-            stumpRootObject = Array.Find(ZoneManagement.instance.GetZoneData(startZone).rootGameObjects, gameObject => gameObject.name == "TreeRoom");
+            stumpRootObject = Array.Find(ZoneManagement.instance.allObjects, gameObject => gameObject.name == "TreeRoom");
             conductTransform = stumpRootObject.transform.FindChildRecursive("code of conduct");
 
             baseHeaderText = stumpRootObject.transform.FindChildRecursive("CodeOfConductHeadingText")?.GetComponent<TextMeshPro>();
@@ -123,19 +120,19 @@ namespace Utilla.Behaviours
 
             if (content.UseBaseText)
             {
-                baseHeaderText.enabled = true;
+                baseHeaderText.renderer?.forceRenderingOff = false;
                 headerText.enabled = false;
 
-                baseBodyText.enabled = true;
+                baseBodyText.renderer?.forceRenderingOff = false;
                 bodyText.enabled = false;
             }
             else
             {
-                baseHeaderText.enabled = false;
+                baseHeaderText.renderer?.forceRenderingOff = true;
                 headerText.enabled = true;
                 headerText.text = content.Title;
 
-                baseBodyText.enabled = false;
+                baseBodyText.renderer?.forceRenderingOff = true;
                 bodyText.enabled = true;
                 bodyText.text = content.Body;
             }

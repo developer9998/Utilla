@@ -21,24 +21,23 @@ namespace Utilla.Behaviours
         public static GamemodeManager Instance { get; private set; }
         public static bool HasInstance => Instance != null;
 
-        public static bool Initialized => InitializeTask.Task.IsCompleted;
-        public static TaskCompletionSource<GamemodeManager> InitializeTask { get; private set; } = new();
+        public static TaskCompletionSource<GamemodeManager> Initialization { get; private set; } = new();
 
         public List<Gamemode> Gamemodes { get; private set; }
         public List<Gamemode> ModdedGamemodes { get; private set; }
 
-        public Dictionary<GameModeType, Gamemode> DefaultGameModesPerMode = [];
-        public Dictionary<GameModeType, Gamemode> ModdedGamemodesPerMode = [];
+        public readonly Dictionary<GameModeType, Gamemode> DefaultGameModesPerMode = [];
+        public readonly Dictionary<GameModeType, Gamemode> ModdedGamemodesPerMode = [];
 
         // Custom game modes
         public List<Gamemode> CustomGameModes;
         private GameObject customGameModeContainer;
         private List<PluginInfo> pluginInfos;
 
-        private List<string> gtGameModeNames;
-
         public void Awake()
         {
+            if (Initialization.Task.IsCompleted) return;
+
             if (Instance != null && Instance != this)
             {
                 Destroy(this);
@@ -48,15 +47,8 @@ namespace Utilla.Behaviours
 
             Events.RoomJoined += OnRoomJoin;
             Events.RoomLeft += OnRoomLeft;
-        }
 
-        public void Start()
-        {
-            if (InitializeTask.Task.IsCompleted) return;
-
-            gtGameModeNames = GameMode.gameModeNames;
-
-            customGameModeContainer = new GameObject("Utilla Custom GameModes");
+            customGameModeContainer = new GameObject("Utilla Custom Game Modes");
             customGameModeContainer.transform.SetParent(GameMode.instance.gameObject.transform);
 
             string currentGameMode = PlayerPrefs.GetString("currentGameMode", GameModeType.Infection.ToString());
@@ -75,14 +67,6 @@ namespace Utilla.Behaviours
             Logging.Info($"Modded Game Modes: {string.Join(", ", ModdedGamemodesPerMode.Select(item => item.Value).Select(mode => mode.DisplayName).Select(displayName => string.Format("\"{0}\"", displayName)))}");
             ModdedGamemodes = [.. ModdedGamemodesPerMode.Values];
 
-            GTZone startZone = PhotonNetworkController.Instance.StartZone; // for future reference: use active zone if this reference is taken out completely
-            if (!UtillaGamemodeSelector.SelectorLookup.TryGetValue(startZone, out var originalSelector))
-            {
-                Logging.Fatal($"Game Mode Selector not found for {startZone.GetName()}!!");
-                Logging.Info(string.Join(Environment.NewLine, UtillaGamemodeSelector.SelectorLookup));
-                return;
-            }
-
             Gamemodes = [.. DefaultGameModesPerMode.Values];
 
             pluginInfos = GetPluginInfos();
@@ -92,17 +76,7 @@ namespace Utilla.Behaviours
             Gamemodes.ForEach(AddGamemodeToPrefabPool);
             Logging.Info($"Game Modes: {string.Join(", ", Gamemodes.Select(mode => mode.DisplayName).Select(displayName => string.Format("\"{0}\"", displayName)))}");
 
-            originalSelector.CheckGameMode();
-            currentGameMode = GorillaComputer.instance.currentGameMode.Value;
-
-            int pageCapacity = originalSelector.PageCapacity;
-            List<Gamemode> avaliableModes = originalSelector.GetSelectorGameModes();
-            int selectedMode = avaliableModes.FindIndex(gm => gm.ID == currentGameMode);
-            originalSelector.PageCount = Mathf.CeilToInt(avaliableModes.Count / (float)pageCapacity);
-            originalSelector.CurrentPage = (selectedMode != -1 && selectedMode < avaliableModes.Count) ? Mathf.FloorToInt(selectedMode / (float)pageCapacity) : 0;
-            originalSelector.ShowPage();
-
-            InitializeTask.SetResult(this);
+            Initialization.SetResult(this);
         }
 
         public List<Gamemode> GetGamemodes(List<PluginInfo> infos)
@@ -229,7 +203,7 @@ namespace Utilla.Behaviours
 
                 GameMode.gameModeKeyByName[gamemode.ID] = (int)gmKey;
                 //GameMode.gameModeKeyByName[gamemode.DisplayName] = (int)gmKey;
-                gtGameModeNames.Add(gamemode.ID);
+                GameMode.gameModeNames.Add(gamemode.ID);
                 return;
             }
 
@@ -249,7 +223,7 @@ namespace Utilla.Behaviours
             GameMode.gameModeTable[gameModeKey] = gameMode;
             GameMode.gameModeKeyByName[gamemode.ID] = gameModeKey;
             //GameMode.gameModeKeyByName[gamemode.DisplayName] = gameModeKey;
-            gtGameModeNames.Add(gamemode.ID);
+            GameMode.gameModeNames.Add(gamemode.ID);
             GameMode.gameModes.Add(gameMode);
 
             prefab.transform.SetParent(customGameModeContainer.transform);

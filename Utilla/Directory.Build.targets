@@ -3,7 +3,5 @@
 	<Target Name="CopyToPlugins" AfterTargets="Build" Condition="'$(CI)'!='TRUE'">
 		<Copy SourceFiles="$(TargetPath)" DestinationFiles="$(PluginsPath)\$(ProjectName)\$(TargetFileName)" />
 		<Message Text="Copied $(TargetFileName) to Plugins" Importance="high"/>
-		<Copy SourceFiles="bin/Debug/$(TargetFramework)/$(ProjectName).pdb" DestinationFiles="$(PluginsPath)\$(ProjectName)\$(ProjectName).pdb" />
-		<Message Text="Copied $(ProjectName).pdb to Plugins" Importance="high"/>
 	</Target>
 </Project>

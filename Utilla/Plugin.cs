@@ -1,9 +1,9 @@
 ﻿using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
+using System;
 using UnityEngine;
 using Utilla.Behaviours;
-using Utilla.Tools;
 
 namespace Utilla
 {
@@ -16,17 +16,15 @@ namespace Utilla
         {
             Logger = base.Logger;
 
-            Harmony.CreateAndPatchAll(typeof(Plugin).Assembly, Constants.GUID);
-
             DontDestroyOnLoad(this);
+
+            Harmony.CreateAndPatchAll(typeof(Plugin).Assembly, Constants.GUID);
+            Events.GameInitialized += OnGameInitialized;
         }
 
-        public static void PostInitialized()
+        public void OnGameInitialized(object sender, EventArgs args)
         {
-            Logging.Message("PostInitialized");
-
-            GameObject gameObject = new($"{Constants.Name} {Constants.Version}", typeof(UtillaNetworkController), typeof(GamemodeManager), typeof(ConductBoardManager));
-            DontDestroyOnLoad(gameObject);
+            DontDestroyOnLoad(new GameObject($"{Constants.Name} {Constants.Version}", typeof(UtillaNetworkController), typeof(GamemodeManager), typeof(ConductBoardManager)));
         }
     }
 }

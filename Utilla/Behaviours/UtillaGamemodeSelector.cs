@@ -18,8 +18,6 @@ namespace Utilla.Behaviours
     [RequireComponent(typeof(GameModeSelectorButtonLayout)), DisallowMultipleComponent]
     internal class UtillaGamemodeSelector : MonoBehaviour
     {
-        public static Dictionary<GTZone, UtillaGamemodeSelector> SelectorLookup = [];
-
         // public List<Gamemode> BaseGameModes;
         public readonly Dictionary<bool, List<Gamemode>> SelectorGameModes = [];
 
@@ -36,44 +34,18 @@ namespace Utilla.Behaviours
             Layout = GetComponent<GameModeSelectorButtonLayout>();
             Zone = Layout.zone;
 
-            if (SelectorLookup.ContainsKey(Zone))
-            {
-                Logging.Warning($"Found duplicate game mode selector for zone {Zone}");
-            }
-            else
-            {
-                SelectorLookup.Add(Zone, this);
-                Logging.Info($"Initializing game mode selector for zone {Zone}");
-            }
-
-            while (Layout.currentButtons.Count == 0)
-            {
-                // Logging.Info("Awaiting button creation");
-                await Task.Delay(100);
-            }
+            while (Layout.currentButtons.Count == 0) 
+                await Task.Yield();
 
             ModifySelectionButtons();
             CreatePageButtons(Layout.currentButtons.First().gameObject);
 
-            Logging.Info("Checking for game mode manager");
+            if (!GamemodeManager.Initialization.Task.IsCompleted)
+                await GamemodeManager.Initialization.Task;
 
-            if (!GamemodeManager.HasInstance)
-            {
-                if (Zone == PhotonNetworkController.Instance.StartZone)
-                {
-                    Logging.Info("Start zone detected - creating game mode manager");
-                    Plugin.PostInitialized();
-                    return;
-                }
-            }
+            Logging.Message($"UtillaGameModeSelector {Zone}");
 
-            if (!GamemodeManager.Initialized)
-            {
-                Logging.Info("Waiting for game mode manager");
-                await GamemodeManager.InitializeTask.Task;
-            }
-
-            if ((ZoneManagement.instance.activeZones is List<GTZone> activeZones && activeZones.Contains(Zone)) || Layout is CustomMapModeSelector)
+            if (isActiveAndEnabled && ((ZoneManagement.instance.activeZones is List<GTZone> activeZones && activeZones.Contains(Zone)) || Layout is CustomMapModeSelector))
             {
                 Logging.Info("Checking game mode validity");
                 CheckGameMode();
