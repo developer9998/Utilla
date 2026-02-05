@@ -6,7 +6,7 @@
 
         internal const string Name = "Utilla";
 
-        internal const string Version = "1.6.24";
+        internal const string Version = "1.6.25";
 
         public const string ModdedPrefix = "MODDED_";
 
