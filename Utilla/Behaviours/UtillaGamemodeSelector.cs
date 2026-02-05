@@ -18,6 +18,8 @@ namespace Utilla.Behaviours
     [RequireComponent(typeof(GameModeSelectorButtonLayout)), DisallowMultipleComponent]
     internal class UtillaGamemodeSelector : MonoBehaviour
     {
+        public bool Active => isActiveAndEnabled && (ZoneManagement.instance.activeZones is List<GTZone> activeZones && activeZones.Contains(Zone));
+
         // public List<Gamemode> BaseGameModes;
         public readonly Dictionary<bool, List<Gamemode>> SelectorGameModes = [];
 
@@ -34,7 +36,7 @@ namespace Utilla.Behaviours
             Layout = GetComponent<GameModeSelectorButtonLayout>();
             Zone = Layout.zone;
 
-            while (Layout.currentButtons.Count == 0) 
+            while (Layout.currentButtons.Count == 0)
                 await Task.Yield();
 
             ModifySelectionButtons();
@@ -45,7 +47,7 @@ namespace Utilla.Behaviours
 
             Logging.Message($"UtillaGameModeSelector {Zone}");
 
-            if (isActiveAndEnabled && ((ZoneManagement.instance.activeZones is List<GTZone> activeZones && activeZones.Contains(Zone)) || Layout is CustomMapModeSelector))
+            if (Active || Layout is CustomMapModeSelector)
             {
                 Logging.Info("Checking game mode validity");
                 CheckGameMode();
@@ -69,7 +71,7 @@ namespace Utilla.Behaviours
 
         public void OnSelectorSetup()
         {
-            if (Layout is not CustomMapModeSelector) return;
+            // if (Layout is not CustomMapModeSelector) return;
 
             bool sessionIsPrivate = NetworkSystem.Instance.SessionIsPrivate;
             if (SelectorGameModes.ContainsKey(sessionIsPrivate)) SelectorGameModes.Remove(sessionIsPrivate);
@@ -125,18 +127,30 @@ namespace Utilla.Behaviours
                 }
             }
 
-            if (SelectorGameModes.TryAdd(sessionIsPrivate, gameModeList))
+            bool superModeState = Layout.superToggleButton.isOn;
+            List<Gamemode> finalGameModeList = [.. superModeState
+                ? gameModeList.Where(gameMode => !gameMode.BaseGamemode.HasValue || (gameMode.BaseGamemode.Value != GameModeType.Casual && gameMode.BaseGamemode.Value != GameModeType.Infection))
+                : gameModeList.Where(gameMode => !gameMode.BaseGamemode.HasValue || (gameMode.BaseGamemode.Value != GameModeType.SuperCasual && gameMode.BaseGamemode.Value != GameModeType.SuperInfect))
+            ];
+
+            if (SelectorGameModes.TryAdd(sessionIsPrivate, finalGameModeList))
             {
-                Logging.Info(string.Join(", ", gameModeList.Select(gameMode => gameMode.DisplayName).Select(gameMode => string.Format("\"{0}\"", gameMode))));
+                Logging.Info(string.Join(", ", finalGameModeList.Select(gameMode => gameMode.DisplayName).Select(gameMode => string.Format("\"{0}\"", gameMode))));
             }
 
-            return gameModeList;
+            return finalGameModeList;
         }
 
         public void CheckGameMode()
         {
-            string currentGameMode = GorillaComputer.instance.currentGameMode.Value;
-            if (GamemodeManager.Instance.CustomGameModes.Exists(customMode => customMode.ID == currentGameMode)) return;
+            if (!Active)
+            {
+                ShowPage();
+                return;
+            }
+
+            string currentMode = GorillaComputer.instance.currentGameMode.Value;
+            if (GamemodeManager.Instance.CustomGameModes.Exists(mode => mode.ID == currentMode)) return;
 
             if (Layout is CustomMapModeSelector)
             {
@@ -144,36 +158,38 @@ namespace Utilla.Behaviours
                 return;
             }
 
-            List<string> gamemodeNames = [.. GetSelectorGameModes().Where(gameMode => gameMode is not null).Select(game_mode => game_mode.ID)];
+            var modeNames = GetSelectorGameModes().Where(mode => mode != null).Select(mode => mode.ID).ToArray();
+            int index = Array.IndexOf(modeNames, currentMode);
 
-            if (!gamemodeNames.Contains(currentGameMode))
+            if (index == -1)
             {
-                SetDefaultMode(gamemodeNames.First());
+                SetDefaultMode(modeNames.First());
                 return;
             }
 
+            CurrentPage = Mathf.FloorToInt(index / (float)PageCapacity);
             ShowPage();
         }
 
-        public void SetDefaultMode(string gameMode)
+        public void SetDefaultMode(string defaultMode)
         {
-            Logging.Message($"SetDefaultMode : {gameMode}");
+            Logging.Message($"SetDefaultMode : {defaultMode}");
 
-            string currentGameMode = GorillaComputer.instance.currentGameMode.Value;
-            bool isModded = currentGameMode.StartsWith(Constants.GamemodePrefix);
+            string currentMode = GorillaComputer.instance.currentGameMode.Value;
+            bool isModded = currentMode.Contains(Constants.ModdedPrefix);
 
             if (isModded)
             {
-                GameModeType? gameModeType = Enum.TryParse(gameMode, out GameModeType tempModeType) ? tempModeType : null;
-                if (gameModeType.HasValue && GamemodeManager.Instance.ModdedGamemodesPerMode.TryGetValue(gameModeType.Value, out Gamemode moddedGamemode)) gameMode = moddedGamemode.ID;
+                bool isBaseMode = Enum.TryParse(defaultMode, out GameModeType modeType);
+                if (isBaseMode && GamemodeManager.Instance.ModdedGamemodesPerMode.TryGetValue(modeType, out Gamemode moddedGamemode)) defaultMode = moddedGamemode.ID;
             }
 
-            GorillaComputer.instance.SetGameModeWithoutButton(gameMode);
+            GorillaComputer.instance.SetGameModeWithoutButton(defaultMode);
 
-            List<string> gamemodeNames = [.. GetSelectorGameModes().Select(game_mode => game_mode != null ? game_mode.ID : string.Empty)];
-            int modeIndex = gamemodeNames.FindIndex(gamemode => gamemode == gameMode);
-            CurrentPage = modeIndex != -1 ? Mathf.FloorToInt(modeIndex / (float)PageCapacity) : 0;
-            Logging.Info($"Set to {gameMode} on page {CurrentPage}");
+            var modeNames = GetSelectorGameModes().Select(game_mode => game_mode != null ? game_mode.ID : string.Empty).ToArray();
+            int index = Array.IndexOf(modeNames, defaultMode);
+            CurrentPage = Mathf.Max(Mathf.FloorToInt(index / (float)PageCapacity), 0);
+            Logging.Info($"Set to {defaultMode} on page {CurrentPage}");
 
             ShowPage();
         }
@@ -206,7 +222,7 @@ namespace Utilla.Behaviours
                 if (!button.gameObject.activeSelf)
                 {
                     button.enabled = false;
-                    button.SetInfo("", "", false, null);
+                    button.SetInfo(string.Empty, string.Empty, false, null);
                     continue;
                 }
 
@@ -282,8 +298,6 @@ namespace Utilla.Behaviours
             {
                 fallbackTemplateButton = templateButton;
             }
-
-            Invoke(nameof(ShowPage), 1);
         }
 
         private void ModifySelectionButtons()

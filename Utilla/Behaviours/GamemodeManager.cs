@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using Utilla.Attributes;
 using Utilla.Models;
+using Utilla.Patches;
 using Utilla.Tools;
 using Utilla.Utils;
 
@@ -51,7 +52,7 @@ namespace Utilla.Behaviours
             customGameModeContainer = new GameObject("Utilla Custom Game Modes");
             customGameModeContainer.transform.SetParent(GameMode.instance.gameObject.transform);
 
-            string currentGameMode = PlayerPrefs.GetString("currentGameMode", GameModeType.Infection.ToString());
+            string currentGameMode = PlayerPrefs.GetString(GorillaComputerPatches.ModePreferenceKey, GameModeType.Infection.ToString());
             GorillaComputer.instance.currentGameMode.Value = currentGameMode;
 
             GameModeType[] gameModeTypes = [.. Enum.GetValues(typeof(GameModeType)).Cast<GameModeType>()];
@@ -61,7 +62,7 @@ namespace Utilla.Behaviours
 
                 GameModeType modeType = gameModeTypes[i];
                 if (!DefaultGameModesPerMode.TryAdd(modeType, new Gamemode(modeType))) continue;
-                ModdedGamemodesPerMode.Add(modeType, new Gamemode(Constants.GamemodePrefix, $"Modded {GameModeUtils.GetGameModeName(modeType)}", modeType));
+                ModdedGamemodesPerMode.Add(modeType, new Gamemode(Constants.ModdedPrefix, $"Modded {GameModeUtils.GetGameModeName(modeType)}", modeType));
             }
 
             Logging.Info($"Modded Game Modes: {string.Join(", ", ModdedGamemodesPerMode.Select(item => item.Value).Select(mode => mode.DisplayName).Select(displayName => string.Format("\"{0}\"", displayName)))}");

@@ -10,13 +10,13 @@ namespace Utilla.Patches
         [HarmonyPatch(nameof(CustomMapModeSelector.OnEnable)), HarmonyPrefix]
         public static void OnEnablePrefix()
         {
-            SetGameModePatch.PreventSettingMode = true;
+            GorillaComputerPatches.AllowSettingMode = false;
         }
 
         [HarmonyPatch(nameof(CustomMapModeSelector.OnEnable)), HarmonyPostfix]
         public static void OnEnablePostfix(CustomMapModeSelector __instance)
         {
-            SetGameModePatch.PreventSettingMode = false;
+            GorillaComputerPatches.AllowSettingMode = true;
 
             if (__instance.TryGetComponent(out UtillaGamemodeSelector selector)) selector.CheckGameMode();
             else __instance.AddComponent<UtillaGamemodeSelector>();
@@ -32,13 +32,13 @@ namespace Utilla.Patches
         [HarmonyPatch(nameof(CustomMapModeSelector.ResetButtons)), HarmonyPrefix]
         public static void ResetButtonsPrefix()
         {
-            SetGameModePatch.PreventSettingMode = true;
+            GorillaComputerPatches.AllowSettingMode = false;
         }
 
         [HarmonyPatch(nameof(CustomMapModeSelector.ResetButtons)), HarmonyPostfix]
         public static void ResetButtonsPostfix()
         {
-            SetGameModePatch.PreventSettingMode = false;
+            GorillaComputerPatches.AllowSettingMode = true;
 
             foreach (CustomMapModeSelector instance in CustomMapModeSelector.instances)
             {
@@ -50,13 +50,13 @@ namespace Utilla.Patches
         [HarmonyPatch(nameof(CustomMapModeSelector.SetAvailableGameModes)), HarmonyPrefix]
         public static void AvailableModesPrefix()
         {
-            SetGameModePatch.PreventSettingMode = true;
+            GorillaComputerPatches.AllowSettingMode = false;
         }
 
         [HarmonyPatch(nameof(CustomMapModeSelector.SetAvailableGameModes)), HarmonyPostfix]
         public static void AvailableModesPostfix()
         {
-            SetGameModePatch.PreventSettingMode = false;
+            GorillaComputerPatches.AllowSettingMode = true;
 
             foreach (CustomMapModeSelector instance in CustomMapModeSelector.instances)
             {

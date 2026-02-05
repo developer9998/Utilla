@@ -35,5 +35,7 @@ namespace Utilla.Utils
                 return gameManager;
             return null;
         }
+
+        public static bool IsSuperGameMode(this GameModeType gameMode) => gameMode == GameModeType.SuperInfect || gameMode == GameModeType.SuperCasual;
     }
 }

@@ -9,15 +9,21 @@ namespace Utilla.Patches
         [HarmonyPatch(nameof(GameModeSelectorButtonLayout.OnEnable)), HarmonyPrefix]
         public static bool OnEnablePatch(GameModeSelectorButtonLayout __instance)
         {
+            if (__instance.superToggleButton is GorillaPressableButton superToggleButton)
+            {
+                superToggleButton.onPressed += __instance._OnPressedSuperToggleButton;
+            }
+
             __instance.SetupButtons();
 
             if (__instance.TryGetComponent(out UtillaGamemodeSelector selector))
             {
                 selector.CheckGameMode();
                 selector.ShowPage();
+                return false;
             }
-            else __instance.AddComponent<UtillaGamemodeSelector>();
 
+            __instance.AddComponent<UtillaGamemodeSelector>();
             return false;
         }
 
@@ -25,13 +31,13 @@ namespace Utilla.Patches
         public static void SetupButtonsPrefix(GameModeSelectorButtonLayout __instance)
         {
             NetworkSystem.Instance.OnJoinedRoomEvent -= __instance.SetupButtons;
-            SetGameModePatch.PreventSettingMode = true;
         }
 
         [HarmonyPatch(nameof(GameModeSelectorButtonLayout.SetupButtons)), HarmonyPostfix]
         public static void SetupButtonsPostfix(GameModeSelectorButtonLayout __instance)
         {
-            SetGameModePatch.PreventSettingMode = false;
+            if (!__instance.TryGetComponent(out UtillaGamemodeSelector selector)) return;
+            selector.OnSelectorSetup();
         }
     }
 }
