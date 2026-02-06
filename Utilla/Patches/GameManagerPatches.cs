@@ -3,6 +3,7 @@
 using GorillaGameModes;
 using HarmonyLib;
 using System;
+using System.Linq;
 
 namespace Utilla.Patches;
 
@@ -14,7 +15,9 @@ internal class GameModePatches
     {
         if (Enum.IsDefined(typeof(GameModeType), (int)__instance.GameType())) return true;
 
-        __result = __instance.GameModeName();
+        int index = GameMode.gameModeTable.LastOrDefault(pair => pair.Value == __instance).Key;
+        __result = GameMode.gameModeKeyByName.LastOrDefault(pair => pair.Value == index).Key;
+
         return false;
     }
 }
