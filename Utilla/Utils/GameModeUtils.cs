@@ -27,7 +27,7 @@ namespace Utilla.Utils
 
         public static Gamemode GetGamemode(Func<Gamemode, bool> predicate)
         {
-            if (GamemodeManager.HasInstance && GamemodeManager.Instance.Gamemodes.FirstOrDefault(predicate) is Gamemode gameMode)
+            if (GamemodeManager.HasInstance && GamemodeManager.Instance.Gamemodes.LastOrDefault(predicate) is Gamemode gameMode)
                 return gameMode;
             return null;
         }
