@@ -1,20 +1,20 @@
 ﻿// https://github.com/Not-A-Bird-07/Utilla/commit/c813503da35b39e63290a776af447e16a88d64c5
 
+using GorillaGameModes;
 using HarmonyLib;
+using System;
 
 namespace Utilla.Patches;
 
 [HarmonyPatch(typeof(GorillaGameManager)), HarmonyWrapSafe]
 internal class GameModePatches
 {
-    [HarmonyPatch("GameTypeName"), HarmonyPrefix]
+    [HarmonyPatch(nameof(GorillaGameManager.GameTypeName)), HarmonyPrefix]
     public static bool GameTypeNamePatch(GorillaGameManager __instance, ref string __result)
     {
-        if (int.TryParse(__instance.GameType().ToString(), out _))
-        {
-            __result = __instance.GameModeName();
-            return false;
-        }
-        return true;
+        if (Enum.IsDefined(typeof(GameModeType), (int)__instance.GameType())) return true;
+
+        __result = __instance.GameModeName();
+        return false;
     }
 }

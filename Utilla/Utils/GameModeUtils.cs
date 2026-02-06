@@ -11,13 +11,22 @@ namespace Utilla.Utils
     {
         public static Gamemode CurrentGamemode { get; internal set; }
 
-        public static Gamemode FindGamemodeInString(string gmString) => GetGamemode(gamemode => gmString.EndsWith(gamemode.ID));
+        public static Gamemode FindGamemodeInString(string gmString)
+        {
+            if (gmString.Contains('|'))
+            {
+                string[] split = gmString.Split('|');
+                return split.Length >= 3 ? GetGamemode(gamemode => split[2] == gamemode.ID) : null;
+            }
+            
+            return GetGamemode(gamemode => gmString.EndsWith(gamemode.ID));
+        }
 
         public static Gamemode GetGamemodeFromId(string id) => GetGamemode(gamemode => gamemode.ID == id);
 
         public static Gamemode GetGamemode(Func<Gamemode, bool> predicate)
         {
-            // Search all gamemodes in reverse order to prioritize modded gamemodes
+            // Search all gamemodes in reverse order to prioritize modded gamemodes (custom, then modded, then base)
             if (GamemodeManager.HasInstance && GamemodeManager.Instance.Gamemodes.LastOrDefault(predicate) is Gamemode gameMode)
                 return gameMode;
             return null;
