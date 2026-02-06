@@ -182,13 +182,19 @@ namespace Utilla.Behaviours
 
         void AddGamemodeToPrefabPool(Gamemode gamemode)
         {
-            if (gamemode.GameManager is null) return;
-
             if (GameMode.gameModeKeyByName.ContainsKey(gamemode.ID))
             {
                 Logging.Warning($"Game Mode already exists: has ID {gamemode.ID}");
                 return;
             }
+
+            if (gamemode.BaseGamemode.HasValue && gamemode.ID != gamemode.BaseGamemode.Value.GetName())
+            {
+                GameMode.gameModeKeyByName.Add(gamemode.ID, GameMode.gameModeKeyByName[gamemode.BaseGamemode.Value.GetName()]);
+                return;
+            }
+
+            if (gamemode.GameManager is null) return;
 
             Type gmType = gamemode.GameManager;
 
