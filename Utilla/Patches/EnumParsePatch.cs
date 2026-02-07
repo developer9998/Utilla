@@ -1,21 +1,33 @@
 ﻿using GorillaGameModes;
 using HarmonyLib;
 using System;
+using System.Reflection;
+using Utilla.Utils;
+using Utilla.Models;
 
 namespace Utilla.Patches;
 
-[HarmonyPatch(typeof(Enum), nameof(Enum.Parse), argumentTypes: [typeof(Type), typeof(string), typeof(bool)])]
+[HarmonyPatch]
 internal class EnumParsePatch
 {
-    public static bool Prefix(Type enumType, string value, ref object __result)
+    public static MethodBase TargetMethod()
     {
-        if (enumType == typeof(GameModeType))
+        return typeof(Enum)
+            .GetMethod(nameof(Enum.Parse), BindingFlags.Public | BindingFlags.Static, null, [typeof(string), typeof(bool)], null)
+            ?.MakeGenericMethod(typeof(GameModeType));
+    }
+
+    public static bool Prefix(string value, ref object __result)
+    {
+        if (GameModeUtils.GetGamemodeFromId(value) is Gamemode gamemode)
         {
-            EnumData<GameModeType> shared = EnumData<GameModeType>.Shared;
-            __result = shared.NameToEnum.TryGetValue(value, out var gameMode) ? gameMode : GameModeType.Casual;
+            __result = gamemode.BaseGamemode.GetValueOrDefault(GameModeType.Infection);
             return false;
         }
 
-        return true;
+        EnumData<GameModeType> shared = EnumData<GameModeType>.Shared;
+        __result = shared.NameToEnum.TryGetValue(value, out var gameMode) ? gameMode : GameModeType.Infection;
+
+        return false;
     }
 }
