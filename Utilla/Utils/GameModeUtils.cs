@@ -19,7 +19,7 @@ namespace Utilla.Utils
                 bool useSeperator = split.Length > 2;
                 return useSeperator ? GetGamemode(gamemode => split[^1] == gamemode.ID) : null;
             }
-            
+
             return GetGamemode(gamemode => gmString.EndsWith(gamemode.ID));
         }
 
