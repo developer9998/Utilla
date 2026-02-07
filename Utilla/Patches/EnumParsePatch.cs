@@ -1,7 +1,7 @@
 ﻿using System;
 using HarmonyLib;
-
 using GorillaGameModes;
+using Utilla.Tools;
 
 namespace Utilla.Patches;
 
@@ -12,7 +12,8 @@ internal class EnumParsePatch
     {
         if (enumType == typeof(GameModeType))
         {
-            __result = Enum.TryParse<GameModeType>(value, out var result) ? result : GameModeType.Casual;
+            EnumData<GameModeType> shared = EnumData<GameModeType>.Shared;
+            __result = shared.NameToEnum.TryGetValue(value, out var gameMode) ? gameMode : GameModeType.Casual;
             return false;
         }
 

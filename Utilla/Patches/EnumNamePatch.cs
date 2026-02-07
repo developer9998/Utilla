@@ -2,6 +2,7 @@
 
 using GorillaGameModes;
 using HarmonyLib;
+using System;
 using System.Globalization;
 using System.Reflection;
 using Utilla.Utils;
@@ -20,10 +21,9 @@ public class EnumNamePatch
 
     public static bool Prefix(GameModeType e, ref string __result)
     {
-        if (int.TryParse(e.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out _))
+        if (!Enum.IsDefined(typeof(GameModeType), (int)e))
         {
-            string a = GameModeUtils.GetGameModeInstance(e).GameTypeName();
-            __result = a;
+            __result = GameModeUtils.GetGameModeInstance(e).GameTypeName();
             return false;
         }
 
